@@ -14,9 +14,15 @@ import {
   Users,
   Heart,
   Shield,
-  Zap
+  Zap,
+  Settings,
+  RefreshCw,
+  Download,
+  Bell,
+  Eye
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 interface Hospital {
   id: string;
@@ -44,6 +50,7 @@ const Dashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Mock data
   const hospitals: Hospital[] = [
@@ -94,6 +101,104 @@ const Dashboard = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    toast.loading('Refreshing dashboard data...');
+    
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast.success('Dashboard updated', {
+        description: 'All data has been refreshed with latest information'
+      });
+    }, 1500);
+  };
+
+  const handleContactHospital = (hospital: Hospital) => {
+    toast.success(`Connecting to ${hospital.name}...`, {
+      description: 'Your call is being connected to the hospital operator',
+      action: {
+        label: 'Video Call',
+        onClick: () => {
+          toast.info('Starting video call...', {
+            description: 'Connecting to hospital video conference system'
+          });
+        }
+      }
+    });
+  };
+
+  const handleViewDetails = (hospital: Hospital) => {
+    toast.info(`Loading details for ${hospital.name}...`, {
+      description: 'Fetching comprehensive hospital information',
+      action: {
+        label: 'Full Report',
+        onClick: () => {
+          toast.success('Report generated', {
+            description: 'Complete hospital report is ready for download'
+          });
+        }
+      }
+    });
+  };
+
+  const handleTakeAction = (alert: string, hospital: string) => {
+    toast.warning(`Action required for ${hospital}`, {
+      description: alert,
+      duration: 10000,
+      action: {
+        label: 'Respond Now',
+        onClick: () => {
+          toast.success('Response initiated', {
+            description: 'Emergency protocols have been activated'
+          });
+        }
+      }
+    });
+  };
+
+  const handleExportData = () => {
+    toast.loading('Preparing data export...');
+    
+    setTimeout(() => {
+      toast.success('Data exported successfully', {
+        description: 'Dashboard data has been exported to CSV format',
+        action: {
+          label: 'Download File',
+          onClick: () => {
+            // Simulate file download
+            const data = {
+              timestamp: new Date().toISOString(),
+              hospitals: hospitals.length,
+              ambulances: ambulances.length,
+              totalBeds: hospitals.reduce((sum, h) => sum + h.beds.total, 0),
+              availableBeds: hospitals.reduce((sum, h) => sum + h.beds.available, 0)
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dashboard-data-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
+        }
+      });
+    }, 2000);
+  };
+
+  const handleNotificationSettings = () => {
+    toast.info('Notification settings', {
+      description: 'Configure your alert preferences and notification channels',
+      action: {
+        label: 'Open Settings',
+        onClick: () => console.log('Open notification settings')
+      }
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -178,6 +283,26 @@ const Dashboard = () => {
             </div>
 
             <div className="flex items-center gap-4">
+              <button 
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+              <button 
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                onClick={handleExportData}
+              >
+                <Download className="w-5 h-5" />
+              </button>
+              <button 
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors relative"
+                onClick={handleNotificationSettings}
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              </button>
               <Link to="/">
                 <button className="px-3 py-2 rounded-lg text-sm font-medium bg-slate-700/50 border border-slate-600 text-white hover:bg-slate-700 transition-all">
                   🏠 Home
@@ -192,7 +317,14 @@ const Dashboard = () => {
                 <Clock className="w-4 h-4" />
                 {currentTime.toLocaleTimeString()}
               </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+                   onClick={() => toast.info('User profile', {
+                     description: 'Open user profile and settings',
+                     action: {
+                       label: 'View Profile',
+                       onClick: () => console.log('Open user profile')
+                     }
+                   })}>
                 <User className="w-5 h-5 text-white" />
               </div>
             </div>
@@ -390,10 +522,18 @@ const Dashboard = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    <button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-xl text-sm font-medium transition-colors">
+                    <button 
+                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-xl text-sm font-medium transition-colors"
+                      onClick={() => handleContactHospital(selectedHospital)}
+                    >
+                      <Phone className="w-4 h-4 mr-2" />
                       Contact
                     </button>
-                    <button className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 px-4 rounded-xl text-sm font-medium transition-colors">
+                    <button 
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 px-4 rounded-xl text-sm font-medium transition-colors"
+                      onClick={() => handleViewDetails(selectedHospital)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
                       Details
                     </button>
                   </div>
@@ -468,7 +608,12 @@ const Dashboard = () => {
                   <span className="text-sm font-medium">Memorial Regional</span>
                 </div>
                 <div className="text-xs text-gray-400">ICU capacity at 95%</div>
-                <button className="mt-2 text-xs text-red-400 hover:text-red-300">Take Action →</button>
+                <button 
+                className="mt-2 text-xs text-red-400 hover:text-red-300 cursor-pointer"
+                onClick={() => handleTakeAction('ICU capacity at 95%', 'Memorial Regional')}
+              >
+                Take Action →
+              </button>
               </div>
               <div className="p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-xl">
                 <div className="flex items-center gap-2 mb-1">
@@ -476,7 +621,12 @@ const Dashboard = () => {
                   <span className="text-sm font-medium">St. Mary's</span>
                 </div>
                 <div className="text-xs text-gray-400">Blood supply low</div>
-                <button className="mt-2 text-xs text-yellow-400 hover:text-yellow-300">Take Action →</button>
+                <button 
+                className="mt-2 text-xs text-yellow-400 hover:text-yellow-300 cursor-pointer"
+                onClick={() => handleTakeAction('Blood supply low', "St. Mary's")}
+              >
+                Take Action →
+              </button>
               </div>
             </div>
           </div>

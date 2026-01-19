@@ -1,8 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Activity, Menu, X } from "lucide-react";
+import { Activity, Menu, X, User, LogOut } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { ROLE_LABELS } from "@/types/auth";
+import { toast } from "sonner";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -15,6 +18,7 @@ const navLinks = [
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -46,12 +50,53 @@ export const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              Sign In
-            </Button>
-            <Button variant="hero" size="sm">
-              Get Started
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">
+                    {user?.name}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({user?.role ? ROLE_LABELS[user.role] : ''})
+                  </span>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => {
+                  logout();
+                  toast.success('Logged out successfully', {
+                    description: 'You have been safely logged out of your account'
+                  });
+                }}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => toast.info('Navigating to login...', {
+                      description: 'Please sign in to access your account'
+                    })}
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button 
+                    variant="hero" 
+                    size="sm"
+                    onClick={() => toast.success('Getting started...', {
+                      description: 'Create your City Health Sync account'
+                    })}
+                  >
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -82,14 +127,56 @@ export const Navbar = () => {
                   {link.label}
                 </Link>
               ))}
-              <div className="flex gap-2 mt-4 px-4">
-                <Button variant="ghost" size="sm" className="flex-1">
-                  Sign In
+              
+              {isAuthenticated ? (
+                <div className="border-t border-border mt-4 pt-4">
+                  <div className="px-4 pb-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-600">{user?.name}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 ml-6">
+                      {user?.role ? ROLE_LABELS[user.role] : ''}
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full mx-4" onClick={() => {
+                  logout();
+                  toast.success('Logged out successfully', {
+                    description: 'You have been safely logged out of your account'
+                  });
+                }}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
                 </Button>
-                <Button variant="hero" size="sm" className="flex-1">
-                  Get Started
-                </Button>
-              </div>
+                </div>
+              ) : (
+                <div className="flex gap-2 mt-4 px-4">
+                  <Link to="/login" className="flex-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full" 
+                      onClick={() => toast.info('Navigating to login...', {
+                        description: 'Please sign in to access your account'
+                      })}
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link to="/register" className="flex-1">
+                    <Button 
+                      variant="hero" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => toast.success('Getting started...', {
+                        description: 'Create your City Health Sync account'
+                      })}
+                    >
+                      Get Started
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
