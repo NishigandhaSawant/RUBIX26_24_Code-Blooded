@@ -13,6 +13,7 @@ import InventoryTest from "./pages/InventoryTest";
 import Dashboard from "./pages/Dashboard";
 import OPDQueue from "./pages/OPDQueue";
 import BedStatus from "./pages/BedStatus";
+import BedAvailabilityDashboard from "./pages/BedAvailabilityDashboard";
 import BloodBank from "./pages/BloodBank";
 import Admission from "./pages/Admission";
 import HospitalNetwork from "./pages/HospitalNetwork";
@@ -26,6 +27,13 @@ import ResourceDecay from "./pages/ResourceDecay";
 import AmbulanceDetection from "./pages/AmbulanceDetection";
 import OutbreakDetection from "./pages/OutbreakDetection";
 import { PatientPortal } from "./pages/PatientPortal";
+import SmartOPD from "./pages/SmartOPD";
+import PatientTokenPortal from "./pages/PatientTokenPortal";
+import { DoctorDashboard } from "./pages/DoctorDashboard";
+import { NurseDashboard } from "./pages/NurseDashboard";
+import { HospitalRegistration } from "./pages/HospitalRegistration";
+import { AdminHospitalVerification } from "./pages/AdminHospitalVerification";
+import PatientDashboard from "./pages/PatientDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +53,12 @@ const App = () => (
                 <PatientPortal />
               </ProtectedRoute>
             } />
+            <Route path="/patient-token" element={
+              <PatientTokenPortal />
+            } />
+            <Route path="/hospital-registration" element={
+              <HospitalRegistration />
+            } />
             
             {/* All feature pages wrapped in AppLayout */}
             <Route element={<AppLayout />}>
@@ -63,9 +77,19 @@ const App = () => (
                   <OPDQueue />
                 </ProtectedRoute>
               } />
+              <Route path="/smart-opd" element={
+                <ProtectedRoute requiredPermission="canManageOPD">
+                  <SmartOPD />
+                </ProtectedRoute>
+              } />
               <Route path="/beds" element={
                 <ProtectedRoute requiredPermission="canManageBeds">
                   <BedStatus />
+                </ProtectedRoute>
+              } />
+              <Route path="/bed-availability" element={
+                <ProtectedRoute requiredPermission="canManageBeds">
+                  <BedAvailabilityDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/blood-bank" element={
@@ -131,6 +155,26 @@ const App = () => (
               <Route path="/outbreak-detection" element={
                 <ProtectedRoute requiredRole="admin">
                   <OutbreakDetection />
+                </ProtectedRoute>
+              } />
+              <Route path="/doctor-dashboard" element={
+                <ProtectedRoute requiredRole="doctor">
+                  <DoctorDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/nurse-dashboard" element={
+                <ProtectedRoute requiredRole="nurse">
+                  <NurseDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/patient-dashboard" element={
+                <ProtectedRoute requiredRole="patient">
+                  <PatientDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/hospital-verification" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminHospitalVerification />
                 </ProtectedRoute>
               } />
             </Route>

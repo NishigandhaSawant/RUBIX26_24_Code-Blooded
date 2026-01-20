@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabaseServices } from '@/lib/supabase-services'
 
 export type DiseaseOutbreak = {
   disease: string
@@ -20,14 +20,13 @@ export function useDiseaseOutbreaks() {
   const fetchData = useCallback(async () => {
     setLoading(true)
 
-    const { data, error } = await supabase
-      .from('disease_outbreak_summary')
-      .select('*')
-
-    if (error) {
-      console.error('Error fetching disease outbreaks:', error)
-    } else {
+    try {
+      // Get disease outbreaks from Supabase
+      const data = await supabaseServices.disease.getOutbreaks()
       setOutbreaks(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error fetching disease outbreaks:', error)
+      setOutbreaks([])
     }
 
     setLoading(false)
@@ -36,22 +35,14 @@ export function useDiseaseOutbreaks() {
   useEffect(() => {
     fetchData()
 
-    // Realtime disabled for stability
-    // const channel = supabase
-    //   .channel('realtime-disease-cases')
-    //   .on(
-    //     'postgres_changes',
-    //     { event: '*', schema: 'public', table: 'disease_cases' },
-    //     () => {
-    //       console.log('Realtime disease case → refreshing outbreaks')
-    //       fetchData()
-    //     }
-    //   )
-    //   .subscribe()
+    // Listen for real-time updates from Supabase
+    const unsubscribe = supabaseServices.disease.listenToOutbreaks((data) => {
+      setOutbreaks(Array.isArray(data) ? data : [])
+    })
 
-    // return () => {
-    //   supabase.removeChannel(channel)
-    // }
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
   }, [fetchData])
 
   return {

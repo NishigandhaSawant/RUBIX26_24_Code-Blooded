@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { mediSyncServices } from '@/lib/firebase-services'
 
 export type HospitalOccupancy = {
   id: string
@@ -18,14 +18,22 @@ export function useHospitalOccupancy() {
   const fetchData = useCallback(async () => {
     setLoading(true)
 
-    const { data, error } = await supabase
-      .from('hospital_occupancy_view')
-      .select('*')
-
-    if (error) {
+    try {
+      // Get hospital occupancy from Firebase
+      const hospitals = await mediSyncServices.beds.getAll()
+      const occupancyData = Object.entries(hospitals || {}).map(([id, hospital]: [string, any]) => ({
+        id,
+        name: hospital.name || `Hospital ${id}`,
+        lat: hospital.lat || 0,
+        lng: hospital.lng || 0,
+        total_beds: hospital.totalBeds || 100,
+        occupied_beds: hospital.occupiedBeds || 50,
+        occupancy_ratio: hospital.occupancyRatio || 0.5
+      }))
+      setData(occupancyData)
+    } catch (error) {
       console.error('Error fetching occupancy:', error)
-    } else {
-      setData(data ?? [])
+      setData([])
     }
 
     setLoading(false)
@@ -34,20 +42,22 @@ export function useHospitalOccupancy() {
   useEffect(() => {
     fetchData()
 
-    const channel = supabase
-      .channel('realtime-bed-events')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bed_events' },
-        () => {
-          console.log('Realtime bed event → refreshing occupancy')
-          fetchData()
-        }
-      )
-      .subscribe()
+    // Listen for real-time updates
+    const unsubscribe = mediSyncServices.beds.listen((beds) => {
+      const occupancyData = Object.entries(beds || {}).map(([id, hospital]: [string, any]) => ({
+        id,
+        name: hospital.name || `Hospital ${id}`,
+        lat: hospital.lat || 0,
+        lng: hospital.lng || 0,
+        total_beds: hospital.totalBeds || 100,
+        occupied_beds: hospital.occupiedBeds || 50,
+        occupancy_ratio: hospital.occupancyRatio || 0.5
+      }))
+      setData(occupancyData)
+    })
 
     return () => {
-      supabase.removeChannel(channel)
+      if (unsubscribe) unsubscribe()
     }
   }, [fetchData])
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabaseServices } from '@/lib/supabase-services'
 
 export function useAmbulanceTracking() {
   const [ambulances, setAmbulances] = useState<any[]>([]);
@@ -7,18 +7,12 @@ export function useAmbulanceTracking() {
 
   const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from("ambulance_events")
-        .select("*")
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching ambulance events:', error);
-      } else {
-        setAmbulances(Array.isArray(data) ? data : []);
-      }
-    } catch (err) {
-      console.error('Unexpected error fetching ambulance events:', err);
+      // Get ambulance events from Supabase
+      const data = await supabaseServices.ambulance.getEvents()
+      setAmbulances(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching ambulance events:', error);
+      setAmbulances([]);
     } finally {
       setLoading(false);
     }
@@ -26,6 +20,15 @@ export function useAmbulanceTracking() {
 
   useEffect(() => {
     fetchData()
+    
+    // Listen for real-time updates from Supabase
+    const unsubscribe = supabaseServices.ambulance.listenToEvents((data) => {
+      setAmbulances(Array.isArray(data) ? data : []);
+    })
+
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
   }, [])
 
   return {
