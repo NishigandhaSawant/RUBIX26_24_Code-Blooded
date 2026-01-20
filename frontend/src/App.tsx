@@ -26,7 +26,9 @@ import CityHeatmap from "./pages/CityHeatmap";
 import ResourceDecay from "./pages/ResourceDecay";
 import AmbulanceDetection from "./pages/AmbulanceDetection";
 import OutbreakDetection from "./pages/OutbreakDetection";
-import { PatientPortal } from "./pages/PatientPortal";
+import PatientOPDPortal from "./pages/PatientOPDPortal";
+import HospitalRecommendations from "./pages/HospitalRecommendations";
+import HospitalTrafficMap from "./pages/HospitalTrafficMap";
 import SmartOPD from "./pages/SmartOPD";
 import PatientTokenPortal from "./pages/PatientTokenPortal";
 import { DoctorDashboard } from "./pages/DoctorDashboard";
@@ -50,7 +52,17 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/patient-portal" element={
               <ProtectedRoute requiredRole="patient">
-                <PatientPortal />
+                <PatientOPDPortal />
+              </ProtectedRoute>
+            } />
+            <Route path="/hospital-recommendations" element={
+              <ProtectedRoute>
+                <HospitalRecommendations />
+              </ProtectedRoute>
+            } />
+            <Route path="/hospital-traffic" element={
+              <ProtectedRoute>
+                <HospitalTrafficMap />
               </ProtectedRoute>
             } />
             <Route path="/patient-token" element={

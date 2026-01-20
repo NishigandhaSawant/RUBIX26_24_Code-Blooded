@@ -87,8 +87,13 @@ export const mediSyncServices = {
 
   // Beds
   beds: {
-    updateStatus: (bedId: string, status: string, patientId?: string) => 
-      realtimeDB.updateData(`beds/${bedId}`, { status, patientId, lastUpdated: Date.now() }),
+    updateStatus: (bedId: string, status: string, patientId?: string) => {
+      const updateData: any = { status, lastUpdated: Date.now() };
+      if (patientId !== undefined && patientId !== null) {
+        updateData.patientId = patientId;
+      }
+      return realtimeDB.updateData(`beds/${bedId}`, updateData);
+    },
     getAll: async (hospitalId?: string) => {
       const beds = await realtimeDB.readData('beds');
       if (!hospitalId || !beds) return beds;

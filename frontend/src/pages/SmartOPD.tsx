@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { PageLayout, PageSection, PageCard } from "@/components/layout/PageLayout";
 import { 
   Plus,
   Search,
@@ -27,12 +28,13 @@ import {
   ArrowRight,
   AlertTriangle,
   Bed,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mediSyncServices } from "@/lib/firebase-services";
-import { SimpleModal } from "@/components/smart-opd/SimpleModal";
-import { PatientRegistrationModal } from "@/components/smart-opd/PatientRegistrationModal";
+import { EnhancedPatientRegistrationModal } from "@/components/smart-opd/EnhancedPatientRegistrationModal";
 
 // --- Types & Interfaces ---
 type Priority = "urgent" | "high" | "normal" | "emergency";
@@ -64,6 +66,9 @@ interface SmartToken {
   emergencyContact?: string;
   medicalHistory?: string;
   symptoms?: string;
+  allergies?: string;
+  medications?: string;
+  bloodGroup?: string;
   doctor: Doctor;
   department: string;
   roomNumber: string;
@@ -294,16 +299,19 @@ const SmartOPD = () => {
   // --- Update Estimated Times ---
   const updateEstimatedTimes = useCallback(() => {
     setTokens(prevTokens => {
+      if (!prevTokens || !Array.isArray(prevTokens)) return prevTokens;
+      
       return prevTokens.map(token => {
-        if (token.status === "completed" || token.status === "in-consultation") {
+        if (!token || token.status === "completed" || token.status === "in-consultation") {
           return token;
         }
 
-        const doctor = doctors.find(d => d.id === token.doctor.id);
-        if (!doctor) return token;
+        const doctor = doctors && doctors.length > 0 ? doctors.find(d => d.id === token.doctor?.id) : null;
+        if (!doctor || !token.doctor?.id) return token;
 
         const waitingTokens = prevTokens.filter(t => 
-          t.doctor.id === token.doctor.id && 
+          t && t.doctor?.id && token.doctor?.id &&
+          t.doctor?.id === token.doctor?.id && 
           t.status === "waiting" &&
           t.priority !== "emergency"
         );
@@ -378,6 +386,28 @@ const SmartOPD = () => {
         return a.positionInQueue - b.positionInQueue;
       });
   }, [tokens, selectedDepartment, searchQuery]);
+
+  // --- Check-in Patient Function ---
+  const checkInPatient = async (tokenId: string) => {
+    try {
+      const token = tokens.find(t => t.id === tokenId);
+      if (!token) return;
+
+      // Update token status to checked-in
+      await mediSyncServices.smartOPD.updateToken(tokenId, {
+        status: 'checked-in',
+        checkInTime: new Date().toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })
+      });
+
+      toast.success(`Patient ${token.patientName} checked in successfully`);
+    } catch (error) {
+      console.error('Error checking in patient:', error);
+      toast.error('Failed to check in patient');
+    }
+  };
 
   // --- Doctor Actions ---
   const startConsultation = async (tokenId: string) => {
@@ -578,17 +608,34 @@ const SmartOPD = () => {
 
   if (loading) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Check if user is a doctor
+  const isDoctor = user?.role === 'doctor' || user?.email?.includes('doctor') || user?.email?.includes('dr.');
+  
+  if (!isDoctor) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <Stethoscope className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-bold mb-2">Access Restricted</h2>
+          <p className="text-muted-foreground mb-4">
+            This page is only accessible to doctors. Please login with a doctor account.
+          </p>
+          <Button onClick={() => window.location.href = '/login'}>
+            Go to Login
+          </Button>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         {/* Debug Info */}
         <div className="mb-4 p-4 bg-blue-100 border border-blue-300 rounded">
           <p>Modal state: {showAddPatientModal ? 'OPEN' : 'CLOSED'}</p>
@@ -690,6 +737,120 @@ const SmartOPD = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Doctor Panel - Next Patient Details */}
+        {showDoctorPanel && (
+          <Card className="mb-6 border-2 border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Stethoscope className="w-5 h-5" />
+                Next Patient - Preparation Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const nextPatient = filteredTokens
+                  .filter(t => t.status === 'waiting' || t.status === 'checked-in')
+                  .sort((a, b) => {
+                    // Emergency first
+                    if (a.isEmergency && !b.isEmergency) return -1;
+                    if (!a.isEmergency && b.isEmergency) return 1;
+                    // Then by priority
+                    const priorityWeight = { emergency: 0, urgent: 1, high: 2, normal: 3 };
+                    return priorityWeight[a.priority] - priorityWeight[b.priority];
+                  })[0];
+
+                if (!nextPatient) {
+                  return (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No patients in queue</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Patient Basic Info */}
+                    <div>
+                      <h4 className="font-semibold mb-3 text-primary">Patient Information</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Name:</span>
+                          <span className="font-medium">{nextPatient.patientName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Token:</span>
+                          <span className="font-medium">{nextPatient.tokenNumber}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Age:</span>
+                          <span className="font-medium">{nextPatient.age} years</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Phone:</span>
+                          <span className="font-medium">{nextPatient.phone}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Status:</span>
+                          <Badge className={getStatusColor(nextPatient.status)}>
+                            {nextPatient.status.replace('-', ' ')}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Medical Information */}
+                    <div>
+                      <h4 className="font-semibold mb-3 text-primary">Medical Details</h4>
+                      <div className="space-y-3">
+                        {nextPatient.symptoms && (
+                          <div>
+                            <span className="text-muted-foreground text-sm">Symptoms:</span>
+                            <p className="text-sm bg-yellow-50 p-2 rounded border-l-4 border-yellow-400">
+                              {nextPatient.symptoms}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {nextPatient.allergies && (
+                          <div>
+                            <span className="text-muted-foreground text-sm">Allergies:</span>
+                            <p className="text-sm bg-red-50 p-2 rounded border-l-4 border-red-400">
+                              {nextPatient.allergies}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {nextPatient.medicalHistory && (
+                          <div>
+                            <span className="text-muted-foreground text-sm">Medical History:</span>
+                            <p className="text-sm bg-blue-50 p-2 rounded border-l-4 border-blue-400">
+                              {nextPatient.medicalHistory}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {nextPatient.priority !== 'normal' && (
+                          <div>
+                            <span className="text-muted-foreground text-sm">Priority:</span>
+                            <Badge className={cn(
+                              nextPatient.priority === 'emergency' && 'bg-red-100 text-red-800',
+                              nextPatient.priority === 'urgent' && 'bg-orange-100 text-orange-800',
+                              nextPatient.priority === 'high' && 'bg-yellow-100 text-yellow-800'
+                            )}>
+                              {nextPatient.priority.toUpperCase()}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters */}
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
@@ -804,19 +965,30 @@ const SmartOPD = () => {
                     )}
 
                     {/* Action Buttons */}
-                    {showDoctorPanel && (
-                      <div className="flex gap-2 mt-2">
-                        {token.status === "waiting" && (
-                          <Button 
-                            size="sm" 
-                            onClick={() => startConsultation(token.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <Play className="w-3 h-3 mr-1" />
-                            Start
-                          </Button>
-                        )}
-                        {token.status === "in-consultation" && (
+                    <div className="flex gap-2 mt-2">
+                      {token.status === "checked-in" && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => startConsultation(token.id)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Play className="w-3 h-3 mr-1" />
+                          Start Consultation
+                        </Button>
+                      )}
+                      
+                      {token.status === "waiting" && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => checkInPatient(token.id)}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <UserCheck className="w-3 h-3 mr-1" />
+                          Check In
+                        </Button>
+                      )}
+                      
+                      {token.status === "in-consultation" && (
                           <div className="flex flex-col gap-2">
                             <Button 
                               size="sm" 
@@ -853,7 +1025,6 @@ const SmartOPD = () => {
                           Delay
                         </Button>
                       </div>
-                    )}
                   </div>
                 </div>
 
@@ -904,7 +1075,7 @@ const SmartOPD = () => {
         )}
 
         {/* Patient Registration Modal */}
-        <PatientRegistrationModal
+        <EnhancedPatientRegistrationModal
           isOpen={showAddPatientModal}
           onClose={() => {
             console.log('Patient Registration Modal closing');
@@ -914,7 +1085,6 @@ const SmartOPD = () => {
           doctors={doctors}
         />
       </div>
-    </AppLayout>
   );
 };
 

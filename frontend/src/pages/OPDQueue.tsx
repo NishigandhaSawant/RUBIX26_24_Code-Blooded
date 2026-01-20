@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { mediSyncServices } from "@/lib/firebase-services";

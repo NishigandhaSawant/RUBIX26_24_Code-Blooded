@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { typographyClasses, colorClasses } from "@/lib/typography";
+import { PageLayout, PageSection, PageCard } from "@/components/layout/PageLayout";
 
 const recentAdmissions = [
   { id: "P-2024-001", name: "Rahul Sharma", department: "Cardiology", time: "10:30 AM", status: "admitted" },
@@ -92,24 +92,18 @@ const CommandCenter = () => {
   }, []);
 
   return (
-    <AppLayout>
-      <div className={typographyClasses.compact.page}>
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="font-sans text-4xl font-bold tracking-tight text-foreground">
-              CuraNet Command Center
-            </h1>
-            <p className={typographyClasses.description}>Real-time hospital operations overview</p>
-          </div>
-          <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200">
-            <div className="text-right">
-              <div className="text-xs text-gray-500">System Time</div>
-              <div className="text-lg font-mono font-bold text-teal-600">{currentTime.toLocaleTimeString()}</div>
-            </div>
-            <StatusBadge status="normal" label="Operational" />
-          </div>
+    <PageLayout 
+      title="CuraNet Command Center"
+      description="Real-time hospital operations overview"
+    >
+      {/* Action Bar */}
+      <div className="flex items-center gap-4 bg-muted p-3 rounded-xl border border-border">
+        <div className="text-right">
+          <div className="text-xs text-muted-foreground">System Time</div>
+          <div className="text-lg font-mono font-bold text-primary">{currentTime.toLocaleTimeString()}</div>
         </div>
+        <StatusBadge status="normal" label="Operational" />
+      </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -152,7 +146,7 @@ const CommandCenter = () => {
             { title: "Patient Flow", icon: Heart, desc: "Analyze and optimize care pathways.", color: "red", link: "/patient-flow" },
             { title: "Resilience", icon: Shield, desc: "Monitor system preparedness metrics.", color: "blue", link: "/resilience" },
           ].map((module) => (
-            <div key={module.title} className={`bg-white rounded-2xl border border-gray-200 ${typographyClasses.compact.card} hover:shadow-md transition-all`}>
+            <div key={module.title} className={`bg-card rounded-2xl border border-border ${typographyClasses.cardContent} hover:shadow-md transition-all`}>
               <div className="flex items-center gap-3 mb-3">
                 <div className={`w-10 h-10 rounded-lg bg-${module.color}-500/10 flex items-center justify-center`}>
                   <module.icon className={`w-5 h-5 text-${module.color}-400`} />
@@ -285,8 +279,7 @@ const CommandCenter = () => {
             </table>
           </div>
         </div>
-      </div>
-    </AppLayout>
+    </PageLayout>
   );
 };
 
