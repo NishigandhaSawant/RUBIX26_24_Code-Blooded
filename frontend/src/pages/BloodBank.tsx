@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -211,7 +210,7 @@ const BloodBank = () => {
   };
 
   return (
-    <AppLayout>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* 🚨 Emergency System Banner */}
       {systemAlert && (
         <div className="bg-critical py-3 px-4 flex items-center justify-between sticky top-0 z-50 animate-pulse shadow-xl">
@@ -420,7 +419,7 @@ const BloodBank = () => {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </div>
   );
 
 };

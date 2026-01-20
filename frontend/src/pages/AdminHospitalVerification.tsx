@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -148,21 +147,18 @@ export const AdminHospitalVerification = () => {
 
   if (user?.role !== 'admin') {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-            <p className="text-muted-foreground">Admin access required</p>
-          </div>
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground">Admin access required</p>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="p-6">
+    <div className="p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Hospital Verification</h1>
           <p className="text-muted-foreground">
@@ -299,6 +295,5 @@ export const AdminHospitalVerification = () => {
           </Card>
         )}
       </div>
-    </AppLayout>
   );
 };

@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Shield, Activity, TrendingUp, Map as MapIcon, Globe, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -72,8 +71,7 @@ const StaticResilience = () => {
   };
 
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="mb-10">
           <h1 className="font-display text-4xl font-black tracking-tighter uppercase italic">
@@ -208,7 +206,6 @@ const StaticResilience = () => {
           </div>
         </div>
       </div>
-    </AppLayout>
   );
 };
 

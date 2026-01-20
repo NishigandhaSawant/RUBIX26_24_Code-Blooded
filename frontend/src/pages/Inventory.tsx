@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
@@ -87,7 +86,11 @@ const Inventory = () => {
 
   // 2. Functional Filtering Logic
   const filteredItems = useMemo(() => {
+    if (!items || !Array.isArray(items)) return [];
+    
     return items.filter(item => {
+      if (!item || !item.name) return false;
+      
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
       return matchesSearch && matchesCategory;

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -213,8 +212,7 @@ const BedAvailabilityDashboard = () => {
   };
 
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
           <div>
@@ -500,7 +498,6 @@ const BedAvailabilityDashboard = () => {
           </div>
         )}
       </div>
-    </AppLayout>
   );
 };
 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { User, AuthState, LoginCredentials, UserRole, ROLE_PERMISSIONS } from '@/types/auth';
 import { toast } from 'sonner';
+import { mediSyncServices } from '@/lib/firebase-services';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
@@ -136,10 +137,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Find user in mock database
-      const user = MOCK_USERS.find(
+      // First check mock users for admin/staff/doctor roles
+      let user = MOCK_USERS.find(
         u => u.email === credentials.email && u.role === credentials.role
       );
+
+      // If not found in mock users and role is patient, check Firebase
+      if (!user && credentials.role === 'patient') {
+        try {
+          // Check if patient exists in Firebase tokens/patients
+          const tokensData = await mediSyncServices.smartOPD.getTokens();
+          const patientsData = await mediSyncServices.patients.getAll();
+          
+          // Search in tokens first
+          if (tokensData) {
+            const patientToken = Object.values(tokensData).find((token: any) => 
+              token.email === credentials.email
+            );
+            
+            if (patientToken) {
+              user = {
+                id: (patientToken as any).patientId || `patient_${Date.now()}`,
+                email: (patientToken as any).email,
+                name: (patientToken as any).patientName,
+                role: 'patient' as UserRole,
+                patientId: (patientToken as any).patientId || `PAT-${Date.now()}`,
+                createdAt: new Date().toISOString(),
+              } as User;
+            }
+          }
+          
+          // If not found in tokens, check patients collection
+          if (!user && patientsData) {
+            const patientRecord = Object.values(patientsData).find((patient: any) => 
+              patient.email === credentials.email
+            );
+            
+            if (patientRecord) {
+              user = {
+                id: (patientRecord as any).id,
+                email: (patientRecord as any).email,
+                name: (patientRecord as any).name,
+                role: 'patient' as UserRole,
+                patientId: (patientRecord as any).patientId || (patientRecord as any).id,
+                createdAt: (patientRecord as any).createdAt || new Date().toISOString(),
+              } as User;
+            }
+          }
+        } catch (error) {
+          console.error('Error checking Firebase for patient:', error);
+        }
+      }
 
       if (!user) {
         throw new Error('Invalid credentials or role mismatch');

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,8 +51,7 @@ export const NurseDashboard = () => {
   }, []);
 
   return (
-    <AppLayout>
-      <div className="p-6">
+    <div className="p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Nurse Dashboard</h1>
           <p className="text-muted-foreground">
@@ -160,6 +158,5 @@ export const NurseDashboard = () => {
           </Card>
         </div>
       </div>
-    </AppLayout>
   );
 };

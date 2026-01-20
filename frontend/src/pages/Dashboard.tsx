@@ -20,9 +20,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { CityOperationsMap } from "@/components/city/CityOperationsMap";
 import { typographyClasses, colorClasses } from "@/lib/typography";
+import { PageLayout, PageSection, PageCard } from "@/components/layout/PageLayout";
 
 interface Hospital {
   id: string;
@@ -150,24 +150,20 @@ const Dashboard = () => {
   ];
 
   return (
-    <AppLayout>
-      <div className={typographyClasses.compact.page}>
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className={typographyClasses.pageHeader}>CuraNet Healthcare Dashboard</h1>
-            <p className={typographyClasses.description}>Real-time hospital operations and city-wide healthcare coordination</p>
-          </div>
-          <div className="flex items-center gap-3">
-             <div className="flex items-center gap-2 text-sm text-slate-500 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">
-                <Clock className="w-4 h-4 text-teal-500" />
-                <span className="font-mono font-bold">{currentTime.toLocaleTimeString()}</span>
-             </div>
-             <Button variant="outline" size="icon" onClick={handleRefresh} className="rounded-xl shadow-sm">
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-             </Button>
-          </div>
+    <PageLayout 
+      title="CuraNet Healthcare Dashboard"
+      description="Real-time hospital operations and city-wide healthcare coordination"
+    >
+      {/* Action Bar */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-card px-3 py-2 rounded-xl border border-border shadow-sm">
+          <Clock className="w-4 h-4 text-primary" />
+          <span className="font-mono font-bold">{currentTime.toLocaleTimeString()}</span>
         </div>
+        <Button variant="outline" size="icon" onClick={handleRefresh} className="rounded-xl shadow-sm">
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+        </Button>
+      </div>
 
         {/* Key Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -304,8 +300,7 @@ const Dashboard = () => {
                 </div>
             ))}
         </div>
-      </div>
-    </AppLayout>
+    </PageLayout>
   );
 };
 
