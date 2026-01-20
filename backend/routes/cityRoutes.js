@@ -155,8 +155,6 @@ router.get('/hospital-status/:hospitalId', async (req, res) => {
   }
 });
 
-<<<<<<< Updated upstream
-=======
 // GET /api/city/heatmap-data - Return hospital data with occupancy for map display
 router.get('/heatmap-data', async (req, res) => {
   try {
@@ -198,7 +196,6 @@ router.get('/heatmap-data', async (req, res) => {
   }
 });
 
->>>>>>> Stashed changes
 module.exports = { 
   router, 
   calculateCitySummary, 

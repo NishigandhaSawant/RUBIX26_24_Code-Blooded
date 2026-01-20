@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
-<<<<<<< Updated upstream
-import { supabase } from "@/lib/supabaseClient";
-=======
 import { mediSyncServices } from "@/lib/firebase-services";
->>>>>>> Stashed changes
 import { 
   Activity, 
   Building2, 
@@ -56,28 +52,10 @@ const Dashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hospitals, setHospitals] = useState<any[]>([]);
 
-<<<<<<< Updated upstream
-  // Fetch hospital data from Supabase
-=======
   // Fetch hospital data from Firebase with Real-time listener
->>>>>>> Stashed changes
   useEffect(() => {
     const initializeDashboard = async () => {
       try {
-<<<<<<< Updated upstream
-        const { data, error } = await supabase
-          .from('hospitals')
-          .select('*');
-        
-        if (error) {
-          console.error('Error fetching hospital data:', error);
-        } else {
-          console.log('Hospitals Loaded:', data);
-          setHospitals(Array.isArray(data) ? data : []);
-        }
-      } catch (error) {
-        console.error('Error fetching hospital data:', error);
-=======
         const data = await mediSyncServices.dashboard.getStats();
         if (data && data.hospitals) {
           setHospitals(Array.isArray(data.hospitals) ? data.hospitals : []);
@@ -98,7 +76,6 @@ const Dashboard = () => {
         }
       } catch (error) {
         console.error('Error initializing dashboard:', error);
->>>>>>> Stashed changes
       }
     };
 

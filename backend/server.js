@@ -7,14 +7,10 @@ const hospitalRoutes = require('./routes/hospitalRoutes');
 const { router: cityRoutes } = require('./routes/cityRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const outbreakRoutes = require('./routes/outbreakRoutes');
-<<<<<<< Updated upstream
-const Hospital = require('./models/Hospital');
-=======
 const emergencyRoutes = require('./routes/emergencyRoutes');
 const Hospital = require('./models/Hospital');
 const Ambulance = require('./models/Ambulance');
 const EmergencyAlert = require('./models/EmergencyAlert');
->>>>>>> Stashed changes
 const { setupChangeStreams, initializeSocketRooms, getInitialCitySummary } = require('./services/changeStreamService');
 
 const app = express();
@@ -121,20 +117,6 @@ io.on('connection', async (socket) => {
     socket.emit('city_update', initialSummary);
     console.log('📊 Sent initial city summary to new connection');
     
-<<<<<<< Updated upstream
-    // Send initial wastage summary
-    const initialWastageSummary = await getCityWastageSummary();
-    socket.emit('city_wastage_update', initialWastageSummary);
-    console.log('💊 Sent initial wastage summary to new connection');
-    
-    // Send initial outbreak summary
-    const initialOutbreakSummary = await getOutbreakSummary();
-    socket.emit('outbreak_update', initialOutbreakSummary);
-    console.log('🦠 Sent initial outbreak summary to new connection');
-  } catch (error) {
-    console.error('Error sending initial data:', error);
-  }
-=======
     // Send initial wastage summary (if function exists)
     try {
       const { getCityWastageSummary } = require('./services/changeStreamService');
@@ -194,7 +176,6 @@ io.on('connection', async (socket) => {
   socket.on('disconnect', () => {
     console.log('Client disconnected from emergency system');
   });
->>>>>>> Stashed changes
 });
 
 // Basic route
@@ -214,19 +195,6 @@ app.use('/api/inventory', inventoryRoutes);
 // Outbreak routes
 app.use('/api/outbreak', outbreakRoutes);
 
-<<<<<<< Updated upstream
-server.listen(PORT, async () => {
-  console.log(`Server is running on port ${PORT}`);
-  
-  // Setup change streams after server starts
-  try {
-    // Wait a bit for MongoDB connection to be fully established
-    setTimeout(async () => {
-      await setupChangeStreams(io, mongoose);
-    }, 2000);
-  } catch (error) {
-    console.error('Error setting up change streams:', error);
-=======
 // Emergency routes
 app.use('/api', emergencyRoutes);
 
@@ -250,6 +218,5 @@ server.listen(PORT, async () => {
     } catch (error) {
       console.error('Error setting up change streams:', error);
     }
->>>>>>> Stashed changes
   }
 });

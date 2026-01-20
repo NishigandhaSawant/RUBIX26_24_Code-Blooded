@@ -53,15 +53,12 @@ const App = () => (
                 <PatientPortal />
               </ProtectedRoute>
             } />
-<<<<<<< Updated upstream
-=======
             <Route path="/patient-token" element={
               <PatientTokenPortal />
             } />
             <Route path="/hospital-registration" element={
               <HospitalRegistration />
             } />
->>>>>>> Stashed changes
             
             {/* All feature pages wrapped in AppLayout */}
             <Route element={<AppLayout />}>
@@ -80,27 +77,21 @@ const App = () => (
                   <OPDQueue />
                 </ProtectedRoute>
               } />
-<<<<<<< Updated upstream
-=======
               <Route path="/smart-opd" element={
                 <ProtectedRoute requiredPermission="canManageOPD">
                   <SmartOPD />
                 </ProtectedRoute>
               } />
->>>>>>> Stashed changes
               <Route path="/beds" element={
                 <ProtectedRoute requiredPermission="canManageBeds">
                   <BedStatus />
                 </ProtectedRoute>
               } />
-<<<<<<< Updated upstream
-=======
               <Route path="/bed-availability" element={
                 <ProtectedRoute requiredPermission="canManageBeds">
                   <BedAvailabilityDashboard />
                 </ProtectedRoute>
               } />
->>>>>>> Stashed changes
               <Route path="/blood-bank" element={
                 <ProtectedRoute requiredPermission="canManageBloodBank">
                   <BloodBank />
@@ -166,8 +157,6 @@ const App = () => (
                   <OutbreakDetection />
                 </ProtectedRoute>
               } />
-<<<<<<< Updated upstream
-=======
               <Route path="/doctor-dashboard" element={
                 <ProtectedRoute requiredRole="doctor">
                   <DoctorDashboard />
@@ -188,7 +177,6 @@ const App = () => (
                   <AdminHospitalVerification />
                 </ProtectedRoute>
               } />
->>>>>>> Stashed changes
             </Route>
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

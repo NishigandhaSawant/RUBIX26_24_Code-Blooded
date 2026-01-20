@@ -1,9 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-<<<<<<< Updated upstream
-import { supabase } from '@/lib/supabaseClient'
-=======
 import { mediSyncServices } from '@/lib/firebase-services'
->>>>>>> Stashed changes
 
 export type HospitalOccupancy = {
   id: string
@@ -22,16 +18,6 @@ export function useHospitalOccupancy() {
   const fetchData = useCallback(async () => {
     setLoading(true)
 
-<<<<<<< Updated upstream
-    const { data, error } = await supabase
-      .from('hospital_occupancy_view')
-      .select('*')
-
-    if (error) {
-      console.error('Error fetching occupancy:', error)
-    } else {
-      setData(data ?? [])
-=======
     try {
       // Get hospital occupancy from Firebase
       const hospitals = await mediSyncServices.beds.getAll()
@@ -48,7 +34,6 @@ export function useHospitalOccupancy() {
     } catch (error) {
       console.error('Error fetching occupancy:', error)
       setData([])
->>>>>>> Stashed changes
     }
 
     setLoading(false)
@@ -57,22 +42,6 @@ export function useHospitalOccupancy() {
   useEffect(() => {
     fetchData()
 
-<<<<<<< Updated upstream
-    const channel = supabase
-      .channel('realtime-bed-events')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bed_events' },
-        () => {
-          console.log('Realtime bed event → refreshing occupancy')
-          fetchData()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-=======
     // Listen for real-time updates
     const unsubscribe = mediSyncServices.beds.listen((beds) => {
       const occupancyData = Object.entries(beds || {}).map(([id, hospital]: [string, any]) => ({
@@ -89,7 +58,6 @@ export function useHospitalOccupancy() {
 
     return () => {
       if (unsubscribe) unsubscribe()
->>>>>>> Stashed changes
     }
   }, [fetchData])
 
