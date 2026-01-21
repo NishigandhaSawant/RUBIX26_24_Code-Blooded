@@ -18,6 +18,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { typographyClasses } from '@/lib/typography';
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -28,6 +30,7 @@ export const DoctorDashboard = () => {
     waiting: 0
   });
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
+  const [doctorQueue, setDoctorQueue] = useState<any[]>([]);
 
   useEffect(() => {
     const loadDoctorData = async () => {
@@ -42,6 +45,21 @@ export const DoctorDashboard = () => {
             t.doctor?.id === user?.id || t.doctorId === user?.id
           );
           
+          // Sort tokens by priority and position
+          const sortedTokens = doctorTokens.sort((a: any, b: any) => {
+            // Emergency first
+            if (a.isEmergency && !b.isEmergency) return -1;
+            if (!a.isEmergency && b.isEmergency) return 1;
+            
+            // Then by priority
+            const priorityWeight = { emergency: 0, urgent: 1, high: 2, normal: 3, low: 4 };
+            const priorityDiff = priorityWeight[a.priority] - priorityWeight[b.priority];
+            if (priorityDiff !== 0) return priorityDiff;
+            
+            // Then by position
+            return a.positionInQueue - b.positionInQueue;
+          });
+          
           setStats({
             todayPatients: doctorTokens.length,
             inConsultation: doctorTokens.filter((t: any) => t.status === 'in-consultation').length,
@@ -50,6 +68,7 @@ export const DoctorDashboard = () => {
           });
           
           setRecentPatients(doctorTokens.slice(0, 5));
+          setDoctorQueue(sortedTokens);
         }
       } catch (error) {
         console.error('Error loading doctor data:', error);
@@ -57,6 +76,39 @@ export const DoctorDashboard = () => {
     };
 
     loadDoctorData();
+    
+    // Set up real-time listener for tokens
+    const unsubscribe = mediSyncServices.smartOPD.listenToTokens((tokensData) => {
+      if (tokensData) {
+        const tokensArray = Object.values(tokensData);
+        const doctorTokens = tokensArray.filter((t: any) => 
+          t.doctor?.id === user?.id || t.doctorId === user?.id
+        );
+        
+        const sortedTokens = doctorTokens.sort((a: any, b: any) => {
+          if (a.isEmergency && !b.isEmergency) return -1;
+          if (!a.isEmergency && b.isEmergency) return 1;
+          
+          const priorityWeight = { emergency: 0, urgent: 1, high: 2, normal: 3, low: 4 };
+          const priorityDiff = priorityWeight[a.priority] - priorityWeight[b.priority];
+          if (priorityDiff !== 0) return priorityDiff;
+          
+          return a.positionInQueue - b.positionInQueue;
+        });
+        
+        setDoctorQueue(sortedTokens);
+        setStats({
+          todayPatients: doctorTokens.length,
+          inConsultation: doctorTokens.filter((t: any) => t.status === 'in-consultation').length,
+          completed: doctorTokens.filter((t: any) => t.status === 'completed').length,
+          waiting: doctorTokens.filter((t: any) => t.status === 'waiting' || t.status === 'checked-in').length
+        });
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [user]);
 
   return (
@@ -114,7 +166,20 @@ export const DoctorDashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card
+            role="link"
+            tabIndex={0}
+            onClick={() => {
+              window.location.href = "/smart-opd";
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                window.location.href = "/smart-opd";
+              }
+            }}
+            className={cn(typographyClasses.interactiveCard, "hover:shadow-lg")}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-600" />
@@ -133,7 +198,20 @@ export const DoctorDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card
+            role="link"
+            tabIndex={0}
+            onClick={() => {
+              window.location.href = "/smart-opd";
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                window.location.href = "/smart-opd";
+              }
+            }}
+            className={cn(typographyClasses.interactiveCard, "hover:shadow-lg")}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Stethoscope className="w-5 h-5 text-green-600" />
@@ -152,7 +230,10 @@ export const DoctorDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className={cn(typographyClasses.hoverLift, "hover:shadow-lg transition-shadow")}
+            role="button"
+            tabIndex={0}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-purple-600" />
@@ -169,6 +250,93 @@ export const DoctorDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Current Queue */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-600" />
+              Current Patient Queue
+              <Badge variant="secondary">{doctorQueue.length} patients</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {doctorQueue.length > 0 ? (
+              <div className="space-y-3">
+                {doctorQueue.map((patient: any, index: number) => (
+                  <div
+                    key={patient.id}
+                    className={cn(
+                      "flex items-center justify-between p-4 border rounded-lg transition-colors",
+                      patient.status === 'in-consultation' && "bg-blue-50 border-blue-200",
+                      patient.status === 'waiting' && "bg-yellow-50 border-yellow-200",
+                      patient.status === 'checked-in' && "bg-green-50 border-green-200"
+                    )}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                          patient.isEmergency ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"
+                        )}>
+                          {patient.positionInQueue || index + 1}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {patient.isEmergency ? "Emergency" : "Queue"}
+                        </div>
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Users className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{patient.patientName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {patient.department} • Token: {patient.tokenNumber} • Age: {patient.age}
+                        </p>
+                        {patient.email && <p className="text-xs text-muted-foreground">{patient.email}</p>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-sm font-medium">
+                          Est. wait: {patient.estimatedWaitTime || 0} min
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {patient.estimatedConsultationTime}
+                        </div>
+                      </div>
+                      <Badge
+                        variant={
+                          patient.status === 'completed' ? 'default' :
+                          patient.status === 'in-consultation' ? 'secondary' :
+                          patient.status === 'checked-in' ? 'default' :
+                          'outline'
+                        }
+                        className={cn(
+                          patient.status === 'in-consultation' && "bg-blue-100 text-blue-800",
+                          patient.status === 'waiting' && "bg-yellow-100 text-yellow-800",
+                          patient.status === 'checked-in' && "bg-green-100 text-green-800"
+                        )}
+                      >
+                        {patient.status.replace('-', ' ')}
+                      </Badge>
+                      <Link to="/smart-opd">
+                        <Button size="sm" variant="ghost">
+                          View <ArrowRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">No patients in queue</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Recent Patients */}
         <Card>

@@ -15,71 +15,138 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Helper function to format time ago
+function formatTimeAgo(date: string | null | undefined): string {
+  if (!date) return "Unknown";
+  
+  try {
+    const now = new Date();
+    const past = new Date(date);
+    if (isNaN(past.getTime())) return "Unknown";
+    
+    const diffMs = now.getTime() - past.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 60) {
+      return `${diffMins} mins ago`;
+    } else if (diffMins < 1440) {
+      return `${Math.floor(diffMins / 60)} hours ago`;
+    } else {
+      return `${Math.floor(diffMins / 1440)} days ago`;
+    }
+  } catch (error) {
+    return "Unknown";
+  }
+}
+
+// Calculate risk level based on remaining percentage and expiry
+function calculateRisk(resource: any): string {
+  const totalUnits = resource.total_units || 0;
+  const usedUnits = resource.used_units || 0;
+  const remainingUnits = totalUnits - usedUnits;
+  const remainingPercentage = totalUnits > 0 ? (remainingUnits / totalUnits) * 100 : 0;
+  
+  // Calculate days to expiry
+  const today = new Date();
+  const expiryDate = resource.expiry_date ? new Date(resource.expiry_date) : null;
+  const daysToExpiry = expiryDate && !isNaN(expiryDate.getTime()) 
+    ? Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    : Infinity;
+  
+  // CRITICAL: remaining ≤ 10% OR expiry < 7 days
+  if (remainingPercentage <= 10 || daysToExpiry < 7) {
+    return "critical";
+  }
+  // HIGH: remaining ≤ 25% OR expiry < 30 days
+  if (remainingPercentage <= 25 || daysToExpiry < 30) {
+    return "high";
+  }
+  // MEDIUM: otherwise
+  return "medium";
+}
+
+// Calculate usage velocity based on days since creation
+function calculateUsageVelocity(resource: any): number {
+  const usedUnits = resource.used_units || 0;
+  const createdAt = resource.created_at ? new Date(resource.created_at) : new Date();
+  const today = new Date();
+  const daysSinceCreated = Math.max(1, Math.ceil((today.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
+  
+  return usedUnits / daysSinceCreated;
+}
+
+// Calculate estimated monthly waste
+function calculateMonthlyWaste(resource: any): number {
+  const totalUnits = resource.total_units || 0;
+  const usedUnits = resource.used_units || 0;
+  const remainingUnits = totalUnits - usedUnits;
+  const costPerUnit = resource.cost_per_unit || 0;
+  
+  if (!costPerUnit || remainingUnits <= 0) return 0;
+  
+  // Calculate days to expiry
+  const today = new Date();
+  const expiryDate = resource.expiry_date ? new Date(resource.expiry_date) : null;
+  const daysToExpiry = expiryDate && !isNaN(expiryDate.getTime()) 
+    ? Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    : Infinity;
+  
+  // Estimate waste as percentage of remaining value for items expiring within 30 days
+  if (daysToExpiry > 30) return 0;
+  
+  const wastePercentage = daysToExpiry < 7 ? 0.5 : 0.2;
+  return remainingUnits * costPerUnit * wastePercentage;
+}
+
+// Helper functions for risk colors
+const getRiskColor = (risk: string) => {
+  switch (risk) {
+    case "low": return "text-green-600 bg-green-100";
+    case "medium": return "text-yellow-600 bg-yellow-100";
+    case "high": return "text-orange-600 bg-orange-100";
+    case "critical": return "text-red-600 bg-red-100";
+    default: return "text-gray-600 bg-gray-100";
+  }
+};
+
+const getRiskBorder = (risk: string) => {
+  switch (risk) {
+    case "low": return "border-l-green-500";
+    case "medium": return "border-l-yellow-500";
+    case "high": return "border-l-orange-500";
+    case "critical": return "border-l-red-500";
+    default: return "border-l-gray-500";
+  }
+};
 
 const ResourceDecay = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const { resources = [], loading } = useResourceDecay();
-
-  // Helper function to format time ago
-  function formatTimeAgo(date: string | null | undefined): string {
-    if (!date) return "Unknown";
-    
-    try {
-      const now = new Date();
-      const past = new Date(date);
-      if (isNaN(past.getTime())) return "Unknown";
-      
-      const diffMs = now.getTime() - past.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      
-      if (diffMins < 60) {
-        return `${diffMins} mins ago`;
-      } else if (diffMins < 1440) {
-        return `${Math.floor(diffMins / 60)} hours ago`;
-      } else {
-        return `${Math.floor(diffMins / 1440)} days ago`;
-      }
-    } catch (error) {
-      return "Unknown";
-    }
-  }
+  const { data: resources = [], loading } = useResourceDecay();
 
   // Transform data to match UI expectations
-  const transformedResources = Array.isArray(resources) ? resources.map((resource, index) => ({
-    id: `resource-${index}-${resource?.name || 'unknown'}-${resource?.location || 'unknown'}`,
-    name: resource?.name || 'Unknown',
-    category: resource?.category || 'Unknown',
-    currentStock: resource?.current_stock || 0,
-    usageVelocity: resource?.usage_velocity || 0,
-    expiryDate: resource?.expiry_date || 'Unknown',
-    wasteRisk: resource?.waste_risk || 'unknown',
-    lastUpdated: formatTimeAgo(resource?.last_updated),
-    location: resource?.location || 'Unknown'
-  })) : [];
-
-  const getRiskColor = (risk: string) => {
-    switch (risk) {
-      case "low": return "text-green-600 bg-green-100";
-      case "medium": return "text-yellow-600 bg-yellow-100";
-      case "high": return "text-orange-600 bg-orange-100";
-      case "critical": return "text-red-600 bg-red-100";
-      default: return "text-gray-600 bg-gray-100";
-    }
-  };
-
-  const getRiskBorder = (risk: string) => {
-    switch (risk) {
-      case "low": return "border-l-green-500";
-      case "medium": return "border-l-yellow-500";
-      case "high": return "border-l-orange-500";
-      case "critical": return "border-l-red-500";
-      default: return "border-l-gray-500";
-    }
-  };
+  const transformedResources = Array.isArray(resources) ? resources.map((resource, index) => {
+    const riskLevel = calculateRisk(resource);
+    const usageVelocity = calculateUsageVelocity(resource);
+    const monthlyWaste = calculateMonthlyWaste(resource);
+    const remainingUnits = (resource.total_units || 0) - (resource.used_units || 0);
+    
+    return {
+      id: `resource-${index}-${resource.resource_name || 'unknown'}-${resource.hospital_id || 'unknown'}`,
+      name: resource.resource_name || 'Unknown',
+      category: resource.category || 'Unknown',
+      currentStock: remainingUnits, // Computed from total_units - used_units
+      usageVelocity: usageVelocity, // Computed from used_units / days_since_created
+      expiryDate: resource.expiry_date || 'Unknown',
+      wasteRisk: riskLevel,
+      lastUpdated: formatTimeAgo(resource.created_at), // Use created_at
+      location: resource.hospital_id || 'Unknown',
+      monthlyWaste: monthlyWaste
+    };
+  }) : [];
 
   const filteredResources = Array.isArray(transformedResources) && transformedResources.filter(resource => {
-    const matchesSearch = resource?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+    const matchesSearch = (resource?.name ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || resource?.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });

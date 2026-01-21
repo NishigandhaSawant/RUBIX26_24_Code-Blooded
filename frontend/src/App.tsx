@@ -11,7 +11,6 @@ import { Login } from "./pages/Login";
 import CommandCenter from "./pages/CommandCenter";
 import InventoryTest from "./pages/InventoryTest";
 import Dashboard from "./pages/Dashboard";
-import OPDQueue from "./pages/OPDQueue";
 import BedStatus from "./pages/BedStatus";
 import BedAvailabilityDashboard from "./pages/BedAvailabilityDashboard";
 import BloodBank from "./pages/BloodBank";
@@ -84,18 +83,13 @@ const App = () => (
                   <Dashboard />
                 </ProtectedRoute>
               } />
-              <Route path="/opd-queue" element={
-                <ProtectedRoute requiredPermission="canManageOPD">
-                  <OPDQueue />
-                </ProtectedRoute>
-              } />
               <Route path="/smart-opd" element={
-                <ProtectedRoute requiredPermission="canManageOPD">
+                <ProtectedRoute requiredRole={['hospital_staff', 'doctor', 'nurse']}>
                   <SmartOPD />
                 </ProtectedRoute>
               } />
               <Route path="/beds" element={
-                <ProtectedRoute requiredPermission="canManageBeds">
+                <ProtectedRoute requiredRole={['hospital_staff', 'nurse']}>
                   <BedStatus />
                 </ProtectedRoute>
               } />
@@ -105,12 +99,12 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/blood-bank" element={
-                <ProtectedRoute requiredPermission="canManageBloodBank">
+                <ProtectedRoute requiredRole={['hospital_staff']}>
                   <BloodBank />
                 </ProtectedRoute>
               } />
               <Route path="/admission" element={
-                <ProtectedRoute requiredPermission="canManagePatients">
+                <ProtectedRoute requiredRole={['hospital_staff', 'doctor', 'nurse']}>
                   <Admission />
                 </ProtectedRoute>
               } />
@@ -120,7 +114,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/inventory" element={
-                <ProtectedRoute requiredPermission="canManageInventory">
+                <ProtectedRoute requiredRole={['hospital_staff']}>
                   <Inventory />
                 </ProtectedRoute>
               } />
@@ -150,7 +144,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/heatmap" element={
-                <ProtectedRoute requiredPermission="canViewAnalytics">
+                <ProtectedRoute requiredRole={['admin', 'hospital_staff']}>
                   <CityHeatmap />
                 </ProtectedRoute>
               } />
@@ -160,7 +154,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/ambulance-detection" element={
-                <ProtectedRoute requiredPermission="canManageAmbulance">
+                <ProtectedRoute requiredRole={['hospital_staff', 'doctor', 'nurse']}>
                   <AmbulanceDetection />
                 </ProtectedRoute>
               } />

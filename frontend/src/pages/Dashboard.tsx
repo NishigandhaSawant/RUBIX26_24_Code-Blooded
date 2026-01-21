@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import { mediSyncServices } from "@/lib/firebase-services";
 import { 
   Activity, 
@@ -28,6 +28,7 @@ interface Hospital {
   id: string;
   name: string;
   status: "normal" | "high" | "critical";
+  intensity?: number;
   beds: {
     total: number;
     available: number;
@@ -51,6 +52,14 @@ const Dashboard = () => {
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hospitals, setHospitals] = useState<any[]>([]);
+  const detailsRef = useRef<HTMLDivElement | null>(null);
+
+  const handleHospitalSelect = useCallback((hospital: any) => {
+    setSelectedHospital(hospital);
+    requestAnimationFrame(() => {
+      detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
 
   // Fetch hospital data from Firebase with Real-time listener
   useEffect(() => {
@@ -153,6 +162,7 @@ const Dashboard = () => {
     <PageLayout 
       title="CuraNet Healthcare Dashboard"
       description="Real-time hospital operations and city-wide healthcare coordination"
+      compact
     >
       {/* Action Bar */}
       <div className="flex items-center justify-between gap-4">
@@ -176,7 +186,7 @@ const Dashboard = () => {
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               </div>
               <div className={`text-3xl font-bold ${colorClasses.card.text} mb-1`}>{metric.value.toLocaleString()}</div>
-              <div className={typographyClasses.metricLabel}>{metric.title}</div>
+              <div className={`font-sans text-[16px] md:text-[18px] font-[600] leading-[1.2] text-muted-foreground`}>{metric.title}</div>
             </div>
           ))}
         </div>
@@ -193,22 +203,37 @@ const Dashboard = () => {
                 {hospitals.map((hospital, index) => (
                   <div
                     key={index}
-                    onClick={() => setSelectedHospital({
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Select ${hospital.name || `Facility ${index + 1}`}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleHospitalSelect({
+                          ...hospital,
+                          status: (hospital as any).intensity > 0.8 ? "critical" : (hospital as any).intensity > 0.6 ? "high" : "normal",
+                          beds: { total: 200, available: Math.floor((1 - (hospital as any).intensity) * 200), icu: 20, ventilators: 10 },
+                        });
+                      }
+                    }}
+                    onClick={() =>
+                      handleHospitalSelect({
                         ...hospital,
-                        status: hospital.intensity > 0.8 ? "critical" : hospital.intensity > 0.6 ? "high" : "normal",
-                        beds: { total: 200, available: Math.floor((1-hospital.intensity)*200), icu: 20, ventilators: 10 }
-                    })}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                      selectedHospital?.id === hospital.id ? "border-teal-500 bg-teal-50" : "border-slate-100 hover:bg-slate-50"
+                        status: (hospital as any).intensity > 0.8 ? "critical" : (hospital as any).intensity > 0.6 ? "high" : "normal",
+                        beds: { total: 200, available: Math.floor((1 - (hospital as any).intensity) * 200), icu: 20, ventilators: 10 },
+                      })
+                    }
+                    className={`p-4 rounded-xl border cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                      selectedHospital?.id === hospital.id
+                        ? "border-teal-500 bg-teal-50"
+                        : "border-slate-100 hover:bg-slate-50 hover:-translate-y-0.5 hover:shadow-sm"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="font-bold text-sm text-slate-800">{hospital.name || `Facility ${index + 1}`}</div>
-                      <div className={`w-2 h-2 rounded-full ${hospital.intensity > 0.8 ? 'bg-red-500' : 'bg-green-500'}`} />
+                      <div className="font-sans text-[14px] font-[600] leading-[1.4] text-slate-800">{hospital.name || `Facility ${index + 1}`}</div>
+                      <div className={`w-2 h-2 rounded-full ${(hospital as any).intensity > 0.8 ? 'bg-red-500' : 'bg-green-500'}`} />
                     </div>
-                    <div className={`text-[10px] px-2 py-0.5 rounded-full inline-block font-bold ${getStatusBg(hospital.intensity)} ${getStatusColor(hospital.intensity)}`}>
-                      {Math.round(hospital.intensity * 100)}% Load
-                    </div>
+                    <div className={`font-sans text-xs font-[600] leading-[1.4] px-2 py-0.5 rounded-full inline-block font-bold bg-teal-500/10 border-teal-400/30`}>{Math.round((hospital as any).intensity * 100)}% Load</div>
                   </div>
                 ))}
               </div>
@@ -220,16 +245,16 @@ const Dashboard = () => {
             <div className="bg-white rounded-2xl border border-slate-200 p-2 shadow-sm h-[600px] relative overflow-hidden">
                 <CityOperationsMap 
                   hospitals={hospitals}
-                  onHospitalSelect={setSelectedHospital}
+                  onHospitalSelect={handleHospitalSelect}
                 />
             </div>
           </div>
 
           {/* Facility Details Sidebar */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3" ref={detailsRef}>
             {selectedHospital ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm sticky top-4">
-                <h3 className="text-xl font-bold text-slate-900 mb-6">{selectedHospital.name}</h3>
+                <h3 className="font-sans text-[24px] font-[600] leading-[1.3] tracking-[-0.01em] text-slate-900 mb-6">{selectedHospital.name}</h3>
                 
                 <div className="space-y-6">
                   <div className={`p-4 rounded-xl border ${getStatusBg(selectedHospital.intensity || 0.5)}`}>

@@ -1,53 +1,111 @@
-import { useEffect, useState, useCallback } from 'react'
-import { supabaseServices } from '@/lib/supabase-services'
+// TODO: Replace local data source with Firebase Firestore collection 'disease_outbreaks'
+// This hook currently uses local data from src/data/diseaseOutbreaks.ts
+// To integrate with Firebase, replace the local data imports and functions with Firebase calls
 
-export type DiseaseOutbreak = {
-  disease: string
-  area: string
-  severity: string
-  total_cases: number
-  reports: number
-  latest_detection: string
-  first_detection: string
-  calculated_severity: string
-  trend: string
-}
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { 
+  diseaseOutbreaks, 
+  getOutbreaksByDisease, 
+  getOutbreaksBySeverity, 
+  searchOutbreaks, 
+  getCriticalOutbreaks,
+  getSeverityCounts,
+  type DiseaseOutbreak as LocalOutbreak 
+} from '@/data/diseaseOutbreaks'
 
-export function useDiseaseOutbreaks() {
-  const [outbreaks, setOutbreaks] = useState<any[]>([])
+// TODO: Replace local data source with Firebase Firestore collection 'disease_outbreaks'
+
+export type DiseaseOutbreak = LocalOutbreak
+
+export function useDiseaseOutbreaks(filters?: { disease?: string; severity?: string; searchTerm?: string }) {
+  const [outbreaks, setOutbreaks] = useState<DiseaseOutbreak[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
+  // Simulate data fetching with local data
   const fetchData = useCallback(async () => {
     setLoading(true)
+    setError(null)
 
     try {
-      // Get disease outbreaks from Supabase
-      const data = await supabaseServices.disease.getOutbreaks()
-      setOutbreaks(Array.isArray(data) ? data : [])
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      let data: DiseaseOutbreak[] = [];
+      
+      if (filters?.disease && filters.disease !== 'all') {
+        data = getOutbreaksByDisease(filters.disease);
+      } else if (filters?.severity === 'critical') {
+        data = getCriticalOutbreaks();
+      } else if (filters?.severity && filters.severity !== 'all') {
+        data = getOutbreaksBySeverity(filters.severity);
+      } else if (filters?.searchTerm) {
+        data = searchOutbreaks(filters.searchTerm);
+      } else {
+        data = diseaseOutbreaks;
+      }
+      
+      setOutbreaks(data)
     } catch (error) {
       console.error('Error fetching disease outbreaks:', error)
+      setError('Failed to fetch outbreaks')
       setOutbreaks([])
     }
 
     setLoading(false)
-  }, [])
+  }, [filters])
 
+  // Initial data load
   useEffect(() => {
     fetchData()
+  }, [fetchData])
 
-    // Listen for real-time updates from Supabase
-    const unsubscribe = supabaseServices.disease.listenToOutbreaks((data) => {
-      setOutbreaks(Array.isArray(data) ? data : [])
-    })
+  // Filtered outbreaks based on current filters
+  const filteredOutbreaks = useMemo(() => {
+    if (!filters) return outbreaks;
+    
+    return outbreaks.filter(outbreak => {
+      const matchesDisease = !filters.disease || filters.disease === 'all' || 
+        outbreak.disease.toLowerCase() === filters.disease.toLowerCase();
+      const matchesSeverity = !filters.severity || filters.severity === 'all' || 
+        outbreak.severity === filters.severity;
+      const matchesSearch = !filters.searchTerm || 
+        outbreak.disease.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        outbreak.zone.toLowerCase().includes(filters.searchTerm.toLowerCase());
+      
+      return matchesDisease && matchesSeverity && matchesSearch;
+    });
+  }, [outbreaks, filters]);
 
-    return () => {
-      if (unsubscribe) unsubscribe()
+  // Severity counts
+  const severityCounts = useMemo(() => getSeverityCounts(), []);
+
+  // Mark resolved (local state only)
+  const markResolved = async (id: string) => {
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      // Remove from local state
+      setOutbreaks(prev => prev.filter(outbreak => outbreak.id !== id))
+    } catch (error) {
+      console.error('Error marking outbreak as resolved:', error)
+      throw error
     }
+  }
+
+  // Refresh function (simulated re-fetch)
+  const refresh = useCallback(async () => {
+    await fetchData()
   }, [fetchData])
 
   return {
-    outbreaks: Array.isArray(outbreaks) ? outbreaks : [],
+    outbreaks: filteredOutbreaks,
+    allOutbreaks: outbreaks,
     loading,
-    error: null,
+    error,
+    markResolved,
+    refresh,
+    severityCounts
   }
 }

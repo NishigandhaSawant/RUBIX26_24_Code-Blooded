@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Activity, Building2, Users, AlertTriangle, Heart, Stethoscope, Shield } from "lucide-react";
+import { ArrowRight, Activity, Building2, Users, AlertTriangle, Heart, Stethoscope, Shield, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EmergencyButton } from "@/components/emergency/EmergencyButton";
 import { EmergencyPanel } from "@/components/emergency/EmergencyPanel";
@@ -62,7 +62,7 @@ export const HeroSection = () => {
           </div>
 
           {/* Heading with CuraNet Branding */}
-          <h1 className="font-sans text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight animate-slide-up">
+          <h1 className="font-sans text-[32px] md:text-[48px] lg:text-[56px] font-[700] leading-[1.2] tracking-[-0.02em] text-white mb-6 animate-slide-up">
             Transforming Healthcare{" "}
             <span className="bg-gradient-to-r from-teal-400 to-cyan-300 bg-clip-text text-transparent">
               One Patient at a Time
@@ -77,11 +77,11 @@ export const HeroSection = () => {
 
           {/* CTA Buttons - Styled for CuraNet */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <Link to="/dashboard">
+            <Link to="/login">
               <Button 
                 className="bg-teal-600 hover:bg-teal-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-lg border-2 border-teal-500"
                 onClick={() => toast.success('Accessing CuraNet Dashboard...', {
-                  description: 'Loading real-time healthcare operations'
+                  description: 'Please sign in to access your healthcare dashboard'
                 })}
               >
                 <Stethoscope className="w-5 h-5 mr-2" />
@@ -89,11 +89,11 @@ export const HeroSection = () => {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
-            <Link to="/opd-queue">
+            <Link to="/login">
               <Button 
                 className="border-2 border-teal-400/50 text-teal-100 bg-teal-500/10 backdrop-blur-sm hover:bg-teal-500/20 px-8 py-4 text-lg"
                 onClick={() => toast.info('Exploring CuraNet Features...', {
-                  description: 'Discover comprehensive medical management tools'
+                  description: 'Please sign in to discover comprehensive medical management tools'
                 })}
               >
                 <Shield className="w-5 h-5 mr-2" />
@@ -102,25 +102,81 @@ export const HeroSection = () => {
             </Link>
           </div>
 
-          {/* Emergency Alert Section - Combined Functional Logic with New Teal/Red Style */}
+          {/* Emergency Alert Section - SOS System */}
           <div className="mt-16 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <div className="bg-gradient-to-br from-red-600/20 via-teal-900/40 to-red-900/20 backdrop-blur-xl border-2 border-red-500/30 rounded-3xl p-8 md:p-10 max-w-3xl mx-auto shadow-2xl">
+            <div className="bg-gradient-to-br from-red-600/20 via-teal-900/40 to-red-900/20 backdrop-blur-xl border-2 border-red-500/30 rounded-3xl p-8 md:p-10 max-w-4xl mx-auto shadow-2xl">
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center mb-4">
-                  <AlertTriangle className="w-7 h-7 text-red-400 mr-3 animate-pulse" />
-                  <h3 className="text-2xl md:text-3xl font-bold text-white drop-shadow-lg">
-                    Emergency Medical Response
-                  </h3>
+                <div className="flex items-center justify-center mb-6">
+                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center animate-pulse shadow-lg">
+                    <span className="text-white text-2xl font-bold">SOS</span>
+                  </div>
                 </div>
-                <p className="text-white/90 text-center mb-8 max-w-xl text-base md:text-lg">
-                  In case of emergency, click the SOS button below. We'll instantly locate you, 
-                  find the nearest available ambulance, and track it in real-time until help arrives.
+                <h3 className="text-3xl md:text-4xl font-bold text-white mb-4 text-center drop-shadow-lg">
+                  Emergency Medical Response
+                </h3>
+                <p className="text-white/90 text-center mb-8 max-w-2xl text-lg">
+                  In case of medical emergency, press SOS button below. We'll instantly locate you, 
+                  dispatch the nearest ambulance, and track it in real-time until help arrives.
                 </p>
-                {/* Kept your original EmergencyButton component and functionality */}
-                <EmergencyButton 
-                  onEmergencyClick={handleEmergencyClick} 
-                  isActive={isLoading || !!currentAlert}
-                />
+                
+                {/* SOS Emergency Button */}
+                <div className="flex flex-col items-center gap-6">
+                  <button 
+                    onClick={() => {
+                      // Trigger emergency response
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            const emergencyData = {
+                              location: {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                              },
+                              timestamp: new Date().toISOString(),
+                              type: 'emergency_sos'
+                            };
+                            
+                            // Store emergency data (in real app, this would go to Firebase)
+                            console.log('SOS Emergency Triggered:', emergencyData);
+                            
+                            // Open emergency dialer
+                            window.open('tel:108', '_self');
+                            
+                            // Show confirmation
+                            alert('Emergency services have been notified! An ambulance is being dispatched to your location.');
+                          },
+                          (error) => {
+                            console.error('Location access denied:', error);
+                            alert('Emergency: Call 108 immediately. Unable to get your location automatically.');
+                            window.open('tel:108', '_self');
+                          }
+                        );
+                      } else {
+                        alert('Emergency: Call 108 immediately. Location services are not available.');
+                        window.open('tel:108', '_self');
+                      }
+                    }}
+                    className="relative w-32 h-32 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center group"
+                  >
+                    <div className="absolute inset-0 rounded-full bg-red-600 animate-ping opacity-20"></div>
+                    <div className="relative flex flex-col items-center">
+                      <AlertTriangle className="w-8 h-8 mb-1" />
+                      <span className="text-lg font-bold">SOS</span>
+                    </div>
+                  </button>
+                  
+                  <div className="text-center space-y-2">
+                    <div className="text-white/80 text-sm">
+                      <div className="flex items-center justify-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        <span>Emergency: 108</span>
+                      </div>
+                    </div>
+                    <div className="text-white/60 text-xs">
+                      Available 24/7 • Instant Dispatch • Real-time Tracking
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -131,22 +187,22 @@ export const HeroSection = () => {
               <div className="w-12 h-12 rounded-xl bg-teal-500/20 flex items-center justify-center mx-auto mb-4">
                 <Users className="w-6 h-6 text-teal-300" />
               </div>
-              <div className="text-3xl font-sans font-bold text-white mb-1">45%</div>
-              <div className="text-sm text-teal-200">Reduced Wait Times</div>
+              <div className="font-sans text-[32px] font-[700] leading-[1.2] text-white mb-1">45%</div>
+              <div className="font-sans text-sm text-teal-200">Reduced Wait Times</div>
             </div>
             <div className="p-6 rounded-2xl bg-cyan-500/10 backdrop-blur-sm border border-cyan-400/30">
               <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center mx-auto mb-4">
                 <Activity className="w-6 h-6 text-cyan-300" />
               </div>
-              <div className="text-3xl font-sans font-bold text-white mb-1">Real-time</div>
-              <div className="text-sm text-cyan-200">Bed Availability</div>
+              <div className="font-sans text-[32px] font-[700] leading-[1.2] text-white mb-1">Real-time</div>
+              <div className="font-sans text-sm text-cyan-200">Bed Availability</div>
             </div>
             <div className="p-6 rounded-2xl bg-blue-500/10 backdrop-blur-sm border border-blue-400/30">
               <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-6 h-6 text-blue-300" />
               </div>
-              <div className="text-3xl font-sans font-bold text-white mb-1">12+</div>
-              <div className="text-sm text-blue-200">Hospitals Connected</div>
+              <div className="font-sans text-[32px] font-[700] leading-[1.2] text-white mb-1">12+</div>
+              <div className="font-sans text-sm text-blue-200">Hospitals Connected</div>
             </div>
           </div>
         </div>

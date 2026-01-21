@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { mediSyncServices } from '@/lib/firebase-services';
 import { useEmergencyResponse } from '@/hooks/useEmergencyResponse';
 import { EmergencyPanel } from '@/components/emergency/EmergencyPanel';
+import { cn } from '@/lib/utils';
+import { typographyClasses } from '@/lib/typography';
 
 export const PatientPortal = () => {
   const { user } = useAuth();
@@ -188,7 +190,9 @@ export const PatientPortal = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className={cn(typographyClasses.interactiveCard, "hover:shadow-lg")}
+            role="group"
+          >
             <CardHeader className="pb-3">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-2">
                 <Calendar className="w-6 h-6 text-blue-600" />
@@ -210,7 +214,9 @@ export const PatientPortal = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className={cn(typographyClasses.interactiveCard, "hover:shadow-lg")}
+            role="group"
+          >
             <CardHeader className="pb-3">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-2">
                 <FileText className="w-6 h-6 text-green-600" />
@@ -233,7 +239,9 @@ export const PatientPortal = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className={cn(typographyClasses.interactiveCard, "hover:shadow-lg")}
+            role="group"
+          >
             <CardHeader className="pb-3">
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-2">
                 <Heart className="w-6 h-6 text-purple-600" />
@@ -256,7 +264,9 @@ export const PatientPortal = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer hover-lift border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
+          <Card className={cn(typographyClasses.interactiveCard, "hover:shadow-lg hover-lift border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50")}
+            role="group"
+          >
             <CardHeader className="pb-3">
               <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-2 animate-pulse-slow">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -304,8 +314,19 @@ export const PatientPortal = () => {
             <CardContent>
               <div className="space-y-4">
                 <div 
-                  className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-gray-50"
+                  role="button"
+                  tabIndex={0}
+                  className={cn(
+                    "flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50",
+                    typographyClasses.interactiveRow
+                  )}
                   onClick={() => handleAppointmentClick('Dr. Sarah Johnson', 'Tomorrow, 10:30 AM')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleAppointmentClick('Dr. Sarah Johnson', 'Tomorrow, 10:30 AM');
+                    }
+                  }}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -323,8 +344,19 @@ export const PatientPortal = () => {
                 </div>
 
                 <div 
-                  className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-gray-50"
+                  role="button"
+                  tabIndex={0}
+                  className={cn(
+                    "flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50",
+                    typographyClasses.interactiveRow
+                  )}
                   onClick={() => handleAppointmentClick('Dr. Michael Chen', 'Dec 28, 2:00 PM')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleAppointmentClick('Dr. Michael Chen', 'Dec 28, 2:00 PM');
+                    }
+                  }}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">

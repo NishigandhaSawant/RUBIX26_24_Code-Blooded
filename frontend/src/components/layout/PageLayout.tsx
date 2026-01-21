@@ -19,7 +19,7 @@ export function PageLayout({
   return (
     <div className={`${compact ? typographyClasses.pageCompact : typographyClasses.page} ${className}`}>
       {/* Page Header */}
-      <div className="mb-8">
+      <div className={compact ? "mb-5" : "mb-6"}>
         <h1 className={typographyClasses.pageHeader}>{title}</h1>
         {description && (
           <p className={typographyClasses.pageDescription}>{description}</p>
@@ -27,7 +27,7 @@ export function PageLayout({
       </div>
       
       {/* Page Content */}
-      <div className="space-y-6">
+      <div className={compact ? "space-y-4" : "space-y-6"}>
         {children}
       </div>
     </div>

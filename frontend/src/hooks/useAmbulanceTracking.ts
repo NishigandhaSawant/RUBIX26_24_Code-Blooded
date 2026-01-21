@@ -1,38 +1,66 @@
 import { useEffect, useState, useCallback } from 'react'
-import { supabaseServices } from '@/lib/supabase-services'
+import { supabase } from '@/lib/supabase'
 
-export function useAmbulanceTracking() {
+export function useAmbulanceTracking(statusFilter?: string) {
   const [ambulances, setAmbulances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true)
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      // Get ambulance events from Supabase
-      const data = await supabaseServices.ambulance.getEvents()
-      setAmbulances(Array.isArray(data) ? data : []);
+      let query = supabase
+        .from('ambulance_latest_positions')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      
+      // Apply status filter if provided
+      if (statusFilter && statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching ambulance positions:', error);
+        setAmbulances([]);
+      } else {
+        setAmbulances(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
-      console.error('Error fetching ambulance events:', error);
+      console.error('Error fetching ambulance positions:', error);
       setAmbulances([]);
     } finally {
       setLoading(false);
+    }
+  }, [statusFilter]);
+
+  const trackAmbulance = async (ambulanceId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ambulance_events')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('ambulance_id', ambulanceId)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+        
+      if (error) {
+        console.error('Error tracking ambulance:', error);
+      } else {
+        // Refresh data after update
+        await fetchData();
+      }
+    } catch (error) {
+      console.error('Error tracking ambulance:', error);
     }
   };
 
   useEffect(() => {
     fetchData()
-    
-    // Listen for real-time updates from Supabase
-    const unsubscribe = supabaseServices.ambulance.listenToEvents((data) => {
-      setAmbulances(Array.isArray(data) ? data : []);
-    })
-
-    return () => {
-      if (unsubscribe) unsubscribe()
-    }
-  }, [])
+  }, [fetchData])
 
   return {
     ambulances: Array.isArray(ambulances) ? ambulances : [],
     loading,
+    trackAmbulance,
+    refetch: fetchData
   };
 }

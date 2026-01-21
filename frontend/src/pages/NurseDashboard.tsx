@@ -16,6 +16,8 @@ import {
   Heart,
   Stethoscope
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { typographyClasses } from '@/lib/typography';
 
 export const NurseDashboard = () => {
   const { user } = useAuth();
@@ -100,7 +102,20 @@ export const NurseDashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card
+            role="link"
+            tabIndex={0}
+            onClick={() => {
+              window.location.href = "/beds";
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                window.location.href = "/beds";
+              }
+            }}
+            className={cn(typographyClasses.interactiveCard, "hover:shadow-lg")}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bed className="w-5 h-5 text-blue-600" />
@@ -119,7 +134,20 @@ export const NurseDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card
+            role="link"
+            tabIndex={0}
+            onClick={() => {
+              window.location.href = "/admission";
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                window.location.href = "/admission";
+              }
+            }}
+            className={cn(typographyClasses.interactiveCard, "hover:shadow-lg")}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-green-600" />
@@ -138,7 +166,20 @@ export const NurseDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card
+            role="link"
+            tabIndex={0}
+            onClick={() => {
+              window.location.href = "/smart-opd";
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                window.location.href = "/smart-opd";
+              }
+            }}
+            className={cn(typographyClasses.interactiveCard, "hover:shadow-lg")}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-purple-600" />
