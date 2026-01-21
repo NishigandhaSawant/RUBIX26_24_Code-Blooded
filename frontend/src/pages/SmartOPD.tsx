@@ -276,6 +276,7 @@ const SmartOPD = () => {
         patientName: "Rajesh Kumar",
         age: 45,
         phone: "+91 98765 43210",
+        email: "rajesh.kumar@example.com", // Add email for patient portal testing
         doctor: mockDoctors[0],
         department: "Cardiology",
         roomNumber: "Room 101",
@@ -290,6 +291,50 @@ const SmartOPD = () => {
         isEmergency: false,
         hospitalId: user?.hospitalId, // Add hospital ID for filtering
         notifications: []
+      },
+      {
+        id: `token-${timestamp}-2`,
+        tokenNumber: "OPD-G-001",
+        patientName: "Priya Sharma",
+        age: 32,
+        phone: "+91 87654 32109",
+        email: "priya.sharma@example.com", // Add email for patient portal testing
+        doctor: mockDoctors[1],
+        department: "General Medicine",
+        roomNumber: "Room 205",
+        checkInTime: "09:00 AM",
+        registrationTime: new Date().toISOString(),
+        estimatedConsultationTime: "09:30 AM",
+        status: "checked-in",
+        priority: "normal",
+        positionInQueue: 1,
+        patientsAhead: 0,
+        estimatedWaitTime: 0,
+        isEmergency: false,
+        hospitalId: user?.hospitalId,
+        notifications: []
+      },
+      {
+        id: `token-${timestamp}-3`,
+        tokenNumber: "OPD-N-003",
+        patientName: "Amit Patel",
+        age: 28,
+        phone: "+91 76543 21098",
+        email: "amit.patel@example.com", // Add email for patient portal testing
+        doctor: mockDoctors[2],
+        department: "Neurology",
+        roomNumber: "Room 310",
+        checkInTime: "08:45 AM",
+        registrationTime: new Date().toISOString(),
+        estimatedConsultationTime: "10:00 AM",
+        status: "in-consultation",
+        priority: "high",
+        positionInQueue: 1,
+        patientsAhead: 0,
+        estimatedWaitTime: 0,
+        isEmergency: false,
+        hospitalId: user?.hospitalId,
+        notifications: []
       }
     ];
     
@@ -302,25 +347,42 @@ const SmartOPD = () => {
       if (!prevTokens || !Array.isArray(prevTokens)) return prevTokens;
       
       return prevTokens.map(token => {
-        if (!token || token.status === "completed" || token.status === "in-consultation") {
+        if (!token || token.status === "completed") {
           return token;
         }
 
         const doctor = doctors && doctors.length > 0 ? doctors.find(d => d.id === token.doctor?.id) : null;
         if (!doctor || !token.doctor?.id) return token;
 
-        const waitingTokens = prevTokens.filter(t => 
+        // Get all active tokens for this doctor (excluding completed)
+        const activeTokens = prevTokens.filter(t => 
           t && t.doctor?.id && token.doctor?.id &&
           t.doctor?.id === token.doctor?.id && 
-          t.status === "waiting" &&
-          t.priority !== "emergency"
+          t.status !== "completed"
         );
 
-        const position = waitingTokens.findIndex(t => t.id === token.id) + 1;
-        const patientsAhead = position - 1;
+        // Sort by priority and creation time for proper queue ordering
+        const sortedTokens = activeTokens.sort((a, b) => {
+          // Emergency first
+          if (a.isEmergency && !b.isEmergency) return -1;
+          if (!a.isEmergency && b.isEmergency) return 1;
+          
+          // Then by priority
+          const priorityWeight = { emergency: 0, urgent: 1, high: 2, normal: 3, low: 4 };
+          const priorityDiff = priorityWeight[a.priority] - priorityWeight[b.priority];
+          if (priorityDiff !== 0) return priorityDiff;
+          
+          // Then by creation time (earlier tokens first)
+          return new Date(a.registrationTime || 0).getTime() - 
+                 new Date(b.registrationTime || 0).getTime();
+        });
+
+        const position = sortedTokens.findIndex(t => t.id === token.id) + 1;
+        const patientsAhead = Math.max(0, position - 1);
         
-        const avgTime = doctor.averageConsultationTime;
-        const delayBuffer = doctor.delayBuffer;
+        // Calculate wait time based on patients ahead and average consultation time
+        const avgTime = doctor.averageConsultationTime || 15;
+        const delayBuffer = doctor.delayBuffer || 5;
         const estimatedWait = (patientsAhead * avgTime) + delayBuffer;
 
         const now = new Date();
@@ -530,20 +592,40 @@ const SmartOPD = () => {
         return;
       }
 
-      // Generate unique token number
+      // Generate sequential token number
       const deptCode = doctor.department.charAt(0).toUpperCase();
-      const tokenNumber = `OPD-${deptCode}-${String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')}`;
+      const doctorTokens = (tokens || []).filter(t => t.doctor?.id === doctor.id);
+      const nextNumber = Math.max(1, ...doctorTokens.map(t => {
+        const match = t.tokenNumber?.match(/OPD-[A-Z]-(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      })) + 1;
+      const tokenNumber = `OPD-${deptCode}-${String(nextNumber).padStart(3, '0')}`;
 
-      // Calculate initial estimated time
-      const waitingTokens = (tokens || []).filter(t => 
-        t.doctor && t.doctor.id === doctor.id && 
-        t.status === "waiting" &&
-        t.priority !== "emergency"
+      // Calculate initial estimated time and position
+      const activeTokens = (tokens || []).filter(t => 
+        t.doctor?.id === doctor.id && 
+        t.status !== "completed"
       );
       
-      const avgTime = doctor.averageConsultationTime;
-      const delayBuffer = doctor.delayBuffer;
-      const estimatedWait = (waitingTokens.length * avgTime) + delayBuffer;
+      // Sort for proper positioning
+      const sortedTokens = activeTokens.sort((a, b) => {
+        if (a.isEmergency && !b.isEmergency) return -1;
+        if (!a.isEmergency && b.isEmergency) return 1;
+        
+        const priorityWeight = { emergency: 0, urgent: 1, high: 2, normal: 3, low: 4 };
+        const priorityDiff = priorityWeight[a.priority] - priorityWeight[b.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+        
+        return new Date(a.registrationTime || 0).getTime() - 
+               new Date(b.registrationTime || 0).getTime();
+      });
+      
+      const position = sortedTokens.length + 1;
+      const patientsAhead = sortedTokens.length;
+      
+      const avgTime = doctor.averageConsultationTime || 15;
+      const delayBuffer = doctor.delayBuffer || 5;
+      const estimatedWait = (patientsAhead * avgTime) + delayBuffer;
       
       const now = new Date();
       const consultationTime = new Date(now.getTime() + estimatedWait * 60000);
@@ -571,8 +653,8 @@ const SmartOPD = () => {
         }),
         status: "checked-in",
         priority: patientData.priority,
-        positionInQueue: waitingTokens.length + 1,
-        patientsAhead: waitingTokens.length,
+        positionInQueue: position,
+        patientsAhead: patientsAhead,
         estimatedWaitTime: estimatedWait,
         isEmergency: patientData.priority === "emergency",
         hospitalId: user?.hospitalId, // Add hospital ID for filtering

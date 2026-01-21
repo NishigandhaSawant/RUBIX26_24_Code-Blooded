@@ -64,7 +64,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageBloodBank: true,
     canManageOPD: true,
     canManageAmbulance: true,
-    canViewAnalytics: false,
+    canViewAnalytics: true,
     canManageSystem: false,
   },
   doctor: {

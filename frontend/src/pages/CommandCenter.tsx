@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { 
   Users, 
   Bed, 
@@ -32,7 +32,7 @@ const alerts = [
   { type: "warning", message: "Blood Bank: O- units running low", time: "30 min ago" },
 ];
 
-const StatCard = ({ title, value, icon: Icon, variant, trend, subtitle }: any) => {
+const StatCard = ({ title, value, icon: Icon, variant, trend, subtitle, onClick }: any) => {
   const getVariantStyles = (variant: string) => {
     switch (variant) {
       case "primary": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
@@ -44,7 +44,24 @@ const StatCard = ({ title, value, icon: Icon, variant, trend, subtitle }: any) =
   };
 
   return (
-    <div className="bg-white backdrop-blur-sm rounded-2xl border border-gray-200 p-6 hover:border-gray-300 transition-all shadow-sm">
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (!onClick) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={
+        "bg-white backdrop-blur-sm rounded-2xl border border-gray-200 p-6 transition-all shadow-sm " +
+        (onClick
+          ? "cursor-pointer hover:border-gray-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          : "")
+      }
+    >
       <div className="flex items-center justify-between mb-4">
         <div className={`w-12 h-12 rounded-xl ${getVariantStyles(variant)} flex items-center justify-center border`}>
           <Icon className="w-6 h-6" />
@@ -83,6 +100,15 @@ const StatusBadge = ({ status, label, size }: any) => {
 
 const CommandCenter = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const departmentRef = useRef<HTMLDivElement | null>(null);
+  const alertsRef = useRef<HTMLDivElement | null>(null);
+  const admissionsRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToRef = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
+    requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -95,6 +121,7 @@ const CommandCenter = () => {
     <PageLayout 
       title="CuraNet Command Center"
       description="Real-time hospital operations overview"
+      compact
     >
       {/* Action Bar */}
       <div className="flex items-center gap-4 bg-muted p-3 rounded-xl border border-border">
@@ -113,6 +140,7 @@ const CommandCenter = () => {
             icon={Users}
             variant="primary"
             trend={{ value: 12, isPositive: true }}
+            onClick={() => scrollToRef(departmentRef)}
           />
           <StatCard
             title="Bed Occupancy"
@@ -120,6 +148,7 @@ const CommandCenter = () => {
             subtitle="168 of 200 beds occupied"
             icon={Bed}
             variant="accent"
+            onClick={() => scrollToRef(departmentRef)}
           />
           <StatCard
             title="Admissions Today"
@@ -127,12 +156,14 @@ const CommandCenter = () => {
             icon={UserPlus}
             variant="success"
             trend={{ value: 8, isPositive: true }}
+            onClick={() => scrollToRef(admissionsRef)}
           />
           <StatCard
             title="Low Stock Alerts"
             value={3}
             icon={Package}
             variant="warning"
+            onClick={() => scrollToRef(alertsRef)}
           />
         </div>
 
@@ -163,7 +194,7 @@ const CommandCenter = () => {
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Department Overview */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-4 shadow-sm" ref={departmentRef}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={typographyClasses.sectionHeader}>Department Status</h2>
               <Link to="/beds">
@@ -209,7 +240,7 @@ const CommandCenter = () => {
 
           {/* Activity & Alerts Column */}
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm" ref={alertsRef}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className={typographyClasses.sectionHeader}>Live Alerts</h2>
                 <AlertTriangle className="w-5 h-5 text-orange-400" />
@@ -243,7 +274,7 @@ const CommandCenter = () => {
         </div>
 
         {/* Admissions Table */}
-        <div className="mt-6 bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+        <div className="mt-6 bg-white rounded-2xl border border-gray-200 p-4 shadow-sm" ref={admissionsRef}>
           <div className="flex items-center justify-between mb-4">
             <h2 className={typographyClasses.sectionHeader}>Recent Admissions</h2>
             <Button variant="ghost" size="sm" className="text-teal-600">View Archive</Button>

@@ -26,10 +26,10 @@ export const Footer = () => {
           <div>
             <h4 className="font-semibold text-white mb-4">Platform</h4>
             <ul className="space-y-2">
-              <li><Link to="/dashboard" className="text-teal-300/60 hover:text-teal-100 transition-colors">Dashboard</Link></li>
-              <li><Link to="/opd-queue" className="text-teal-300/60 hover:text-teal-100 transition-colors">OPD Queue</Link></li>
-              <li><Link to="/beds" className="text-teal-300/60 hover:text-teal-100 transition-colors">Bed Status</Link></li>
-              <li><Link to="/blood-bank" className="text-teal-300/60 hover:text-teal-100 transition-colors">Blood Bank</Link></li>
+              <li><Link to="/login" className="text-teal-300/60 hover:text-teal-100 transition-colors">Dashboard</Link></li>
+              <li><Link to="/login" className="text-teal-300/60 hover:text-teal-100 transition-colors">OPD Queue</Link></li>
+              <li><Link to="/login" className="text-teal-300/60 hover:text-teal-100 transition-colors">Bed Status</Link></li>
+              <li><Link to="/login" className="text-teal-300/60 hover:text-teal-100 transition-colors">Blood Bank</Link></li>
             </ul>
           </div>
           

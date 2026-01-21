@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAmbulanceTracking } from "@/hooks/useAmbulanceTracking";
+import { toast } from "sonner";
 import { 
   Ambulance, 
   MapPin, 
@@ -22,7 +23,8 @@ const AmbulanceDetection = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [currentTime, setCurrentTime] = useState(new Date());
-  const { ambulances = [], loading } = useAmbulanceTracking();
+  const [selectedAmbulance, setSelectedAmbulance] = useState<any>(null);
+  const { ambulances = [], loading, trackAmbulance, refetch } = useAmbulanceTracking(selectedStatus);
 
   // Helper function to format time ago
   function formatTimeAgo(timestamp: string | null | undefined): string {
@@ -104,6 +106,88 @@ const AmbulanceDetection = () => {
       case "minor": return "text-green-600 bg-green-100";
       default: return "text-gray-600 bg-gray-100";
     }
+  };
+
+  // Handle Directions button click
+  const handleDirections = (ambulance: any) => {
+    if (ambulance.location.lat && ambulance.location.lng) {
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${ambulance.location.lat},${ambulance.location.lng}`;
+      window.open(googleMapsUrl, '_blank');
+      toast.success('Opening directions in Google Maps', {
+        description: `Navigating to ${ambulance.unitNumber}`
+      });
+    } else {
+      toast.error('Unable to get directions', {
+        description: 'Location coordinates not available'
+      });
+    }
+  };
+
+  // Handle Contact Crew button click
+  const handleContactCrew = (ambulance: any) => {
+    setSelectedAmbulance(ambulance);
+    toast.info('Crew Contact Information', {
+      description: `Driver: ${ambulance.crew.driver}, Paramedic: ${ambulance.crew.paramedic}, EMT: ${ambulance.crew.emt}`,
+      action: {
+        label: 'Call Driver',
+        onClick: () => {
+          window.open(`tel:+1234567890`, '_blank');
+          toast.success('Initiating call to driver');
+        }
+      }
+    });
+  };
+
+  // Handle Contact Patient button click
+  const handleContactPatient = (ambulance: any) => {
+    if (ambulance.patient) {
+      toast.info('Patient Contact', {
+        description: `Contacting ${ambulance.patient.name}'s family...`,
+        action: {
+          label: 'Call Family',
+          onClick: () => {
+            window.open(`tel:+1234567890`, '_blank');
+            toast.success('Calling patient family');
+          }
+        }
+      });
+    }
+  };
+
+  // Handle Dispatch Unit button click
+  const handleDispatchUnit = (ambulance: any) => {
+    toast.loading('Dispatching ambulance...', {
+      description: `Preparing ${ambulance.unitNumber} for dispatch`
+    });
+
+    // Simulate dispatch process
+    setTimeout(() => {
+      toast.success('Ambulance Dispatched!', {
+        description: `${ambulance.unitNumber} has been dispatched to emergency location`,
+        action: {
+          label: 'Track Unit',
+          onClick: () => handleTrackAmbulance(ambulance)
+        }
+      });
+      refetch(); // Refresh data to show updated status
+    }, 2000);
+  };
+
+  // Handle Track button click
+  const handleTrackAmbulance = (ambulance: any) => {
+    trackAmbulance(ambulance.id);
+    toast.success('Tracking Activated', {
+      description: `Now tracking ${ambulance.unitNumber} in real-time`,
+      action: {
+        label: 'View Live Map',
+        onClick: () => {
+          if (ambulance.location.lat && ambulance.location.lng) {
+            const mapUrl = `https://www.google.com/maps/@${ambulance.location.lat},${ambulance.location.lng},15z`;
+            window.open(mapUrl, '_blank');
+          }
+        }
+      }
+    });
   };
 
   const filteredAmbulances = transformedAmbulances.filter(ambulance => {
@@ -219,8 +303,8 @@ const AmbulanceDetection = () => {
               ))}
             </div>
 
-            <Button variant="outline" size="sm" disabled>
-              <RefreshCw className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
@@ -256,6 +340,15 @@ const AmbulanceDetection = () => {
                       Current Location
                     </div>
                     <div className="text-sm font-medium">{ambulance.location.address}</div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="mt-1 text-xs"
+                      onClick={() => handleDirections(ambulance)}
+                    >
+                      <Navigation className="w-3 h-3 mr-1" />
+                      Get Directions
+                    </Button>
                   </div>
                   
                   {ambulance.destination && (
@@ -313,11 +406,19 @@ const AmbulanceDetection = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleContactPatient(ambulance)}
+                        >
                           <Phone className="w-4 h-4 mr-2" />
                           Contact
                         </Button>
-                        <Button variant="default" size="sm">
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          onClick={() => handleTrackAmbulance(ambulance)}
+                        >
                           Track
                         </Button>
                       </div>
@@ -328,11 +429,21 @@ const AmbulanceDetection = () => {
                 {ambulance.status === "available" && (
                   <div className="border-t pt-4 mt-4">
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleContactCrew(ambulance)}
+                      >
                         <Phone className="w-4 h-4 mr-2" />
                         Contact Crew
                       </Button>
-                      <Button variant="default" size="sm" className="flex-1">
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleDispatchUnit(ambulance)}
+                      >
                         Dispatch Unit
                       </Button>
                     </div>

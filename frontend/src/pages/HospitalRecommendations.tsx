@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mediSyncServices } from '@/lib/firebase-services';
+import { typographyClasses } from '@/lib/typography';
 
 interface Hospital {
   id: string;
@@ -55,6 +56,14 @@ const HospitalRecommendations = () => {
   const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'availability'>('distance');
   const [userLocation, setUserLocation] = useState({ lat: 19.0760, lng: 72.8777 });
   const [mapCenter, setMapCenter] = useState({ lat: 19.0760, lng: 72.8777 });
+
+  const handleSelectHospital = useCallback((hospital: Hospital) => {
+    setSelectedHospital(hospital);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`hospital-card-${hospital.id}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }, []);
 
   // Demo hospital data
   const demoHospitals: Hospital[] = [
@@ -360,10 +369,21 @@ const HospitalRecommendations = () => {
                           <div
                             key={hospital.id}
                             className={cn(
-                              "w-8 h-8 rounded-full border-2 cursor-pointer transition-all hover:scale-110",
+                              "w-8 h-8 rounded-full border-2",
+                              typographyClasses.focusRing,
+                              "cursor-pointer transition-all hover:scale-110",
                               getStatusColor(hospital.status)
                             )}
-                            onClick={() => setSelectedHospital(hospital)}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Select ${hospital.name}`}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleSelectHospital(hospital);
+                              }
+                            }}
+                            onClick={() => handleSelectHospital(hospital)}
                             title={hospital.name}
                           >
                             <div className="w-full h-full flex items-center justify-center text-xs font-bold">
@@ -415,11 +435,22 @@ const HospitalRecommendations = () => {
             <Card 
               key={hospital.id} 
               className={cn(
-                "cursor-pointer transition-all hover:shadow-lg border-2",
+                typographyClasses.interactiveCard,
+                "border-2",
                 getStatusColor(hospital.status),
                 selectedHospital?.id === hospital.id && "ring-2 ring-primary"
               )}
-              onClick={() => setSelectedHospital(hospital)}
+              id={`hospital-card-${hospital.id}`}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open details for ${hospital.name}`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelectHospital(hospital);
+                }
+              }}
+              onClick={() => handleSelectHospital(hospital)}
             >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">

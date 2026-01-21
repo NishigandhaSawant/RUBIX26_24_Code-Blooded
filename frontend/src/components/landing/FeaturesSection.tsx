@@ -153,7 +153,7 @@ export const FeaturesSection = () => {
           {features.map((feature, index) => (
             <Link
               key={feature.title}
-              to={feature.link}
+              to="/login"
               className={cn(
                 "group p-6 rounded-2xl bg-slate-800/50 backdrop-blur-sm border transition-all duration-300 hover:shadow-xl animate-slide-up",
                 colorMap[feature.color as keyof typeof colorMap]
@@ -173,7 +173,7 @@ export const FeaturesSection = () => {
                 {feature.description}
               </p>
               <div className="flex items-center text-sm font-medium text-teal-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                Access Medical Module <ArrowRight className="w-4 h-4 ml-1" />
+                Sign In to Access <ArrowRight className="w-4 h-4 ml-1" />
               </div>
             </Link>
           ))}

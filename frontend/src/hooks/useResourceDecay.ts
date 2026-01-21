@@ -1,38 +1,27 @@
-import { useEffect, useState, useCallback } from 'react'
-import { supabaseServices } from '@/lib/supabase-services'
+import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
 
 export function useResourceDecay() {
-  const [resources, setResources] = useState<any[]>([]);
+  const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchData = async () => {
-    try {
-      // Get resource usage from Supabase
-      const data = await supabaseServices.resource.getUsage()
-      setResources(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching resource usage:', error);
-      setResources([]);
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    fetchData()
-    
-    // Listen for real-time updates from Supabase
-    const unsubscribe = supabaseServices.resource.listenToUsage((data) => {
-      setResources(Array.isArray(data) ? data : []);
-    })
+    const fetchData = async () => {
+      const { data, error } = await supabase
+        .from('resource_usage')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-    return () => {
-      if (unsubscribe) unsubscribe()
+      if (error) {
+        console.error('Error fetching resource usage:', error)
+      } else {
+        setData(data ?? [])
+      }
+      setLoading(false)
     }
+
+    fetchData()
   }, [])
 
-  return {
-    resources: Array.isArray(resources) ? resources : [],
-    loading,
-    error: null,
-  };
+  return { data, loading }
 }

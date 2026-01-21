@@ -157,7 +157,7 @@ const StaticResilience = () => {
               </div>
 
               {/* Detailed Performance */}
-              <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl flex flex-col justify-between">
+              <div className="bg-white rounded-[2.5rem] p-8 text-slate-900 shadow-2xl flex flex-col justify-between border border-slate-200">
                 <div>
                   <div className="flex items-center gap-4 mb-8">
                     <div className="p-3 bg-primary/20 rounded-2xl">
@@ -181,7 +181,7 @@ const StaticResilience = () => {
                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{m.label}</span>
                           <span className={cn("text-xl font-black italic", getStatusColor(m.val))}>{m.val}%</span>
                         </div>
-                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-primary transition-all duration-700" 
                             style={{ width: `${m.val}%` }}

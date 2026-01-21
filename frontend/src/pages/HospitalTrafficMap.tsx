@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mediSyncServices } from '@/lib/firebase-services';
+import { typographyClasses } from '@/lib/typography';
 
 interface Hospital {
   id: string;
@@ -51,6 +52,14 @@ const HospitalTrafficMap = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'normal' | 'high' | 'critical'>('all');
   const [showTrafficOnly, setShowTrafficOnly] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const detailsRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSelectHospital = useCallback((hospital: Hospital) => {
+    setSelectedHospital(hospital);
+    requestAnimationFrame(() => {
+      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
 
   // Load hospital data
   useEffect(() => {
@@ -249,10 +258,20 @@ const HospitalTrafficMap = () => {
                         <div 
                           key={hospital.id}
                           className={cn(
-                            "border-2 rounded-lg p-4 cursor-pointer transition-all hover:shadow-lg",
+                            "border-2 rounded-lg p-4",
+                            typographyClasses.interactiveCard,
                             getStatusColor(hospital.status)
                           )}
-                          onClick={() => setSelectedHospital(hospital)}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Select ${hospital.name}`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleSelectHospital(hospital);
+                            }
+                          }}
+                          onClick={() => handleSelectHospital(hospital)}
                         >
                           <div className="text-center">
                             <h4 className="font-bold mb-2">{hospital.name}</h4>
@@ -302,7 +321,7 @@ const HospitalTrafficMap = () => {
 
         {/* Detailed Hospital Information */}
         {selectedHospital && (
-          <Card className="mb-6">
+          <Card className="mb-6" ref={detailsRef}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

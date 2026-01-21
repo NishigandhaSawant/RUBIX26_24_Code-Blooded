@@ -1,10 +1,12 @@
 import { useHospitalOccupancy } from '@/hooks/useHospitalOccupancy'
+import { useDiseaseOutbreaks } from '@/hooks/useDiseaseOutbreaks'
 import { useEffect } from 'react'
 
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import OutbreakMap from "@/components/OutbreakMap";
+import DiseaseOutbreakMap from "@/components/DiseaseOutbreakMap";
 import { 
   Map, 
   Layers,
@@ -13,19 +15,27 @@ import {
   Building2,
   Users,
   Bed,
-  Activity
+  Activity,
+  Bug
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CityHeatmap = () => {
   // 👇 ADD THESE LINES HERE
   const { data, loading, refresh } = useHospitalOccupancy()
+  const { outbreaks: diseaseOutbreaks, loading: outbreaksLoading } = useDiseaseOutbreaks()
 
   useEffect(() => {
     if (!loading) {
       console.log('Hospital occupancy data:', data)
     }
   }, [loading, data])
+
+  useEffect(() => {
+    if (!outbreaksLoading) {
+      console.log('Disease outbreak data:', diseaseOutbreaks)
+    }
+  }, [outbreaksLoading, diseaseOutbreaks])
   // 👆 ADD THESE LINES HERE
   return (
     
@@ -52,10 +62,37 @@ const CityHeatmap = () => {
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-card rounded-2xl border border-border overflow-hidden">
             <div className="p-4 border-b border-border bg-muted/30">
-              <h2 className="font-display font-semibold">Live Hospital Heatmap</h2>
-              <p className="text-sm text-muted-foreground mt-1">Real-time bed occupancy intensity across Mumbai</p>
+              <h2 className="font-display font-semibold">Live City Health Heatmap</h2>
+              <p className="text-sm text-muted-foreground mt-1">Real-time hospital occupancy and disease outbreaks across Mumbai</p>
             </div>
-            <OutbreakMap hospitalData={data} loading={loading} />
+            <div className="relative">
+              <OutbreakMap hospitalData={data} diseaseOutbreaks={diseaseOutbreaks} loading={loading || outbreaksLoading} />
+              {/* Disease outbreak overlay */}
+              <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm border border-border rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Bug className="w-4 h-4 text-red-600" />
+                  <span className="text-sm font-medium">Disease Outbreaks</span>
+                </div>
+                <div className="text-xs space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-600"></div>
+                    <span>Critical ({diseaseOutbreaks.filter(o => o.severity === 'critical').length})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <span>High ({diseaseOutbreaks.filter(o => o.severity === 'high').length})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <span>Medium ({diseaseOutbreaks.filter(o => o.severity === 'medium').length})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span>Low ({diseaseOutbreaks.filter(o => o.severity === 'low').length})</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Real-time Stats */}

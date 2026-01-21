@@ -34,7 +34,10 @@ import {
   User,
   Pill,
   FileText,
-  Map
+  Map,
+  Route,
+  Navigation,
+  ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mediSyncServices, realtimeDB } from "@/lib/firebase-services";
@@ -163,9 +166,7 @@ const PatientOPDPortal = () => {
   const [appointmentDate, setAppointmentDate] = useState('');
   const [appointmentTime, setAppointmentTime] = useState('');
   const [recommendedHospitals, setRecommendedHospitals] = useState<any[]>([]);
-  const [emergencyMode, setEmergencyMode] = useState(false);
-  const [emergencyReason, setEmergencyReason] = useState('');
-  const [patientLocation, setPatientLocation] = useState({ lat: 19.0760, lng: 72.8777 }); // Default Mumbai
+  const [patientLocation, setPatientLocation] = useState<{lat: number, lng: number}>({lat: 19.0760, lng: 72.8777}); // Default Mumbai coordinates
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [symptomsData, setSymptomsData] = useState<SymptomData[]>([]);
@@ -186,6 +187,24 @@ const PatientOPDPortal = () => {
       } catch (e) { console.error("Medical Data Load Error", e); }
     };
     loadCSVs();
+  }, []);
+
+  // Get user's geolocation
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setPatientLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.log('Error getting location:', error);
+          // Keep default Mumbai coordinates if geolocation fails
+        }
+      );
+    }
   }, []);
 
   // ... rest of your logic
@@ -264,8 +283,30 @@ const PatientOPDPortal = () => {
               status: token.status as Status
             }));
             
-            // Filter tokens for this patient by email
-            const patientTokens = tokensArray.filter(token => token.email === patientEmail);
+            // Filter tokens for this patient by email or phone
+            console.log('All tokens available:', tokensArray);
+            console.log('Filtering for patient email:', patientEmail);
+            console.log('Patient profile available:', patientProfile);
+            
+            const patientTokens = tokensArray.filter(token => {
+              // Primary match by email
+              if (token.email && token.email === patientEmail) {
+                console.log('Matched by email:', token);
+                return true;
+              }
+              // Secondary match by phone if email not found
+              if (patientProfile && token.phone === patientProfile.phone) {
+                console.log('Matched by phone:', token);
+                return true;
+              }
+              // Also check if patient profile matches
+              if (patientProfile && token.patientName === patientProfile.name && token.age === patientProfile.age) {
+                console.log('Matched by name and age:', token);
+                return true;
+              }
+              return false;
+            });
+            console.log('Filtered patient tokens:', patientTokens);
             setTokens(patientTokens);
             
             // Check for status changes and show notifications
@@ -312,6 +353,15 @@ const PatientOPDPortal = () => {
           }
         }
 
+        // Also check localStorage for test profiles
+        const localProfile = localStorage.getItem('patientProfile');
+        if (localProfile && !patientProfile) {
+          const profile = JSON.parse(localProfile);
+          if (profile.email === patientEmail) {
+            setPatientProfile(profile);
+          }
+        }
+
         // Load hospital statistics
         const loadHospitalStats = async () => {
           try {
@@ -319,12 +369,12 @@ const PatientOPDPortal = () => {
             if (stats) {
               setHospitalStats({
                 totalHospitals: stats.hospitals?.length || 6,
-                totalBeds: stats.totalBeds || 1200,
-                availableBeds: stats.availableBeds || 450,
-                icuBeds: stats.icuBeds || 120,
-                ventilators: stats.ventilators || 45,
-                emergencyCases: stats.emergencyCases || 23,
-                averageWaitTime: stats.averageWaitTime || 25
+                totalBeds: (stats.totalBeds as number) || 1200,
+                availableBeds: (stats.availableBeds as number) || 450,
+                icuBeds: (stats.icuBeds as number) || 120,
+                ventilators: (stats.ventilators as number) || 45,
+                emergencyCases: (stats.emergencyCases as number) || 23,
+                averageWaitTime: (stats.averageWaitTime as number) || 25
               });
             }
           } catch (error) {
@@ -339,8 +389,8 @@ const PatientOPDPortal = () => {
             if (bloodBankData) {
               const inventory = bloodBankData || {};
               setBloodBankStats({
-                totalUnits: Object.values(inventory).reduce((sum: number, count: any) => {
-                  const units = typeof count === 'object' && count !== null && 'units' in (count as any) ? Number((count as any).units) : 0;
+                totalUnits: Object.values(inventory as Record<string, any>).reduce((sum: number, count: any) => {
+                  const units = typeof count === 'object' && count !== null && 'units' in count ? Number(count.units) : Number(count) || 0;
                   return sum + units;
                 }, 0),
                 availableUnits: {
@@ -408,21 +458,73 @@ const PatientOPDPortal = () => {
             if (stats && stats.hospitals) {
               const hospitals = Array.isArray(stats.hospitals) ? stats.hospitals : [];
               
-              // Calculate distances and sort by nearest
-              const hospitalsWithDistance = hospitals.map((hospital: any) => {
+              // Enhanced hospital data with coordinates and addresses for Mumbai area
+              const enhancedHospitals = hospitals.map((hospital: any, index: number) => {
+                const baseCoords = [
+                  { lat: 19.0760, lng: 72.8777 }, // Mumbai Central
+                  { lat: 19.0860, lng: 72.8877 }, // Near Mumbai Central
+                  { lat: 19.0660, lng: 72.8677 }, // Andheri area
+                  { lat: 19.0560, lng: 72.8577 }, // Bandra area
+                ];
+                
+                const addresses = [
+                  "123 Main Street, Mumbai, Maharashtra 400001",
+                  "456 Park Avenue, Mumbai, Maharashtra 400002", 
+                  "789 Highway Road, Mumbai, Maharashtra 400003",
+                  "321 Central Road, Mumbai, Maharashtra 400004"
+                ];
+                
+                const coords = baseCoords[index % baseCoords.length];
                 const distance = calculateDistance(
                   patientLocation.lat, 
                   patientLocation.lng, 
-                  hospital.lat || 19.0760, 
-                  hospital.lng || 72.8777
+                  coords.lat, 
+                  coords.lng
                 );
-                return { ...hospital, distance };
+                
+                return { 
+                  ...hospital, 
+                  distance,
+                  coordinates: coords,
+                  address: addresses[index % addresses.length]
+                };
               }).sort((a, b) => a.distance - b.distance);
 
-              setRecommendedHospitals(hospitalsWithDistance.slice(0, 3));
+              setRecommendedHospitals(enhancedHospitals.slice(0, 3));
             }
           } catch (error) {
             console.error('Error loading hospital recommendations:', error);
+            // Fallback data with coordinates
+            const fallbackHospitals = [
+              { 
+                name: "City General Hospital", 
+                distance: 2.5,
+                bedsAvailable: 12,
+                queue: 15,
+                rating: 4.5,
+                coordinates: { lat: 19.0760, lng: 72.8777 },
+                address: "123 Main Street, Mumbai, Maharashtra 400001"
+              },
+              { 
+                name: "Metro Medical Center", 
+                distance: 4.2,
+                bedsAvailable: 28,
+                queue: 20,
+                rating: 4.7,
+                coordinates: { lat: 19.0860, lng: 72.8877 },
+                address: "456 Park Avenue, Mumbai, Maharashtra 400002"
+              },
+              { 
+                name: "Regional Health Hub", 
+                distance: 6.8,
+                bedsAvailable: 5,
+                queue: 35,
+                rating: 4.2,
+                coordinates: { lat: 19.0660, lng: 72.8677 },
+                address: "789 Highway Road, Mumbai, Maharashtra 400003"
+              }
+            ];
+            setRecommendedHospitals(fallbackHospitals);
           }
         };
         loadHospitalRecommendations();
@@ -439,7 +541,7 @@ const PatientOPDPortal = () => {
     };
 
     loadPatientData();
-  }, [patientEmail, soundEnabled]);
+  }, [patientEmail, soundEnabled, patientLocation]);
 
   // --- Real-time Updates ---
   useEffect(() => {
@@ -525,64 +627,273 @@ const PatientOPDPortal = () => {
     );
   }, [tokens]);
 
-  // --- Active Token ---
+  // --- Interactive Hospital Map Component ---
+const HospitalMap = () => {
+  const [selectedHospital, setSelectedHospital] = useState<any>(null);
+  
+  // Hospital data with coordinates
+  const hospitals = [
+    {
+      id: 1,
+      name: "CuraNet General Hospital",
+      address: "123 Medical Center Drive, Mumbai",
+      coordinates: { lat: 19.0760, lng: 72.8777 },
+      phone: "+91-22-1234-5678",
+      emergency: true,
+      beds: 450,
+      rating: 4.5,
+      distance: "0.5 km"
+    },
+    {
+      id: 2,
+      name: "City Medical Center",
+      address: "456 Health Avenue, Mumbai",
+      coordinates: { lat: 19.0860, lng: 72.8877 },
+      phone: "+91-22-2345-6789",
+      emergency: true,
+      beds: 320,
+      rating: 4.2,
+      distance: "1.2 km"
+    },
+    {
+      id: 3,
+      name: "Metro Hospital",
+      address: "789 Care Boulevard, Mumbai",
+      coordinates: { lat: 19.0660, lng: 72.8677 },
+      phone: "+91-22-3456-7890",
+      emergency: false,
+      beds: 280,
+      rating: 4.0,
+      distance: "2.1 km"
+    },
+    {
+      id: 4,
+      name: "Emergency Care Center",
+      address: "321 Urgent Street, Mumbai",
+      coordinates: { lat: 19.0960, lng: 72.8977 },
+      phone: "+91-22-4567-8901",
+      emergency: true,
+      beds: 150,
+      rating: 4.7,
+      distance: "1.8 km"
+    }
+  ];
+
+  const handleGetDirections = (hospital: any) => {
+    const destination = `${hospital.coordinates.lat},${hospital.coordinates.lng}`;
+    const origin = `${19.0760},${72.8777}`; // Default Mumbai coordinates
+    
+    // Open Google Maps with directions
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+    window.open(mapsUrl, '_blank');
+  };
+
+  const openMapWithHospital = (hospital: any) => {
+    // Open Google Maps centered on hospital
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${hospital.coordinates.lat},${hospital.coordinates.lng}`;
+    window.open(mapsUrl, '_blank');
+  };
+
+  return (
+    <div className="w-full h-96 bg-gradient-to-br from-blue-50 to-teal-50 rounded-lg overflow-hidden relative">
+      {/* Map Background Pattern */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="grid grid-cols-8 grid-rows-8 h-full">
+          {Array.from({ length: 64 }).map((_, i) => (
+            <div key={i} className="border border-gray-300"></div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Hospital Markers */}
+      <div className="absolute inset-0 p-4">
+        <div className="relative w-full h-full">
+          {hospitals.map((hospital, index) => {
+            // Calculate position based on coordinates (simplified)
+            const x = ((hospital.coordinates.lng - 72.8677) / 0.03) * 100; // Rough positioning
+            const y = ((19.0960 - hospital.coordinates.lat) / 0.03) * 100; // Rough positioning
+            
+            return (
+              <div
+                key={hospital.id}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                style={{ left: `${x}%`, top: `${y}%` }}
+                onClick={() => setSelectedHospital(hospital)}
+              >
+                {/* Hospital Marker */}
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center shadow-lg transform transition-all duration-200 group-hover:scale-110",
+                  hospital.emergency ? "bg-red-500" : "bg-blue-500"
+                )}>
+                  <Building2 className="w-5 h-5 text-white" />
+                </div>
+                
+                {/* Hospital Label */}
+                <div className="absolute top-12 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  <div className="text-xs font-semibold">{hospital.name}</div>
+                  <div className="text-xs text-gray-500">{hospital.distance}</div>
+                </div>
+              </div>
+            );
+          })}
+          
+          {/* User Location */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+            <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow-md text-xs font-semibold">
+              Your Location
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Map Controls */}
+      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-md p-2 space-y-2">
+        <button
+          onClick={() => window.open('https://www.google.com/maps/@19.0760,72.8777,12z', '_blank')}
+          className="block w-full text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+        >
+          🗺️ Open in Google Maps
+        </button>
+        <button
+          onClick={() => window.open('tel:108', '_self')}
+          className="block w-full text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+        >
+          🚑 Emergency: 108
+        </button>
+      </div>
+      
+      {/* Selected Hospital Details */}
+      {selectedHospital && (
+        <div className="absolute bottom-4 left-4 right-4 bg-white rounded-lg shadow-lg p-4">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h4 className="font-semibold text-sm mb-1">{selectedHospital.name}</h4>
+              <p className="text-xs text-gray-600 mb-2">{selectedHospital.address}</p>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xs">⭐ {selectedHospital.rating}</span>
+                <span className="text-xs">🛏️ {selectedHospital.beds} beds</span>
+                <span className="text-xs">📍 {selectedHospital.distance}</span>
+                {selectedHospital.emergency && <span className="text-xs bg-red-100 text-red-700 px-1 rounded">24/7</span>}
+              </div>
+            </div>
+            <button
+              onClick={() => setSelectedHospital(null)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleGetDirections(selectedHospital)}
+              className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+            >
+              🗺️ Directions
+            </button>
+            <button
+              onClick={() => window.open(`tel:${selectedHospital.phone}`)}
+              className="text-xs bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+            >
+              📞 Call
+            </button>
+            <button
+              onClick={() => openMapWithHospital(selectedHospital)}
+              className="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
+            >
+              📍 View on Map
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- Active Token ---
   const activeToken = useMemo(() => {
-    return tokens.find(token => 
+    console.log('Current tokens:', tokens);
+    console.log('Patient email:', patientEmail);
+    console.log('Patient profile:', patientProfile);
+    const active = tokens.find(token => 
       token.status === "waiting" || token.status === "in-consultation" || token.status === "checked-in"
     );
+    console.log('Active token found:', active);
+    return active;
   }, [tokens]);
 
-  // --- Emergency Request ---
-  const handleEmergencyRequest = async () => {
-    if (!emergencyReason || !patientProfile) {
-      toast.error('Please provide emergency details');
-      return;
+  // --- Get Directions to Hospital ---
+  const handleGetDirections = (hospital: any) => {
+    const destination = `${hospital.coordinates.lat},${hospital.coordinates.lng}`;
+    const origin = `${19.0760},${72.8777}`; // Default Mumbai coordinates
+    
+    // Open Google Maps with directions
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+    window.open(mapsUrl, '_blank');
+  };
+
+  // --- Create Test Token (for debugging) ---
+  const createTestToken = async () => {
+    // Create a test patient profile if none exists
+    if (!patientProfile) {
+      const testProfile = {
+        id: `patient-${Date.now()}`,
+        name: "Test Patient",
+        email: patientEmail || "test@example.com",
+        phone: "+91 12345 67890",
+        age: 30,
+        gender: "Male",
+        address: "Test Address",
+        emergencyContact: "+91 09876 54321",
+        bloodGroup: "O+",
+        medicalHistory: "None",
+        allergies: "None",
+        medications: "None"
+      };
+      
+      // Save test profile to localStorage (in a real app, this would be saved to database)
+      localStorage.setItem('patientProfile', JSON.stringify(testProfile));
+      setPatientProfile(testProfile);
+      toast.success('Test patient profile created!');
     }
 
     try {
-      const emergencyData = {
-        patientId: patientProfile.id,
-        patientName: patientProfile.name,
-        patientEmail: patientProfile.email,
-        patientPhone: patientProfile.phone,
-        reason: emergencyReason,
-        location: patientLocation,
-        priority: 'emergency',
-        status: 'active',
-        timestamp: new Date().toISOString(),
-        type: 'emergency_request'
-      };
-
-      // Add to emergency requests in Firebase
-      await realtimeDB.pushData('emergencyRequests', emergencyData);
-
-      // Create emergency token
-      await mediSyncServices.smartOPD.addToken({
-        ...emergencyData,
-        tokenNumber: `EMG${Date.now().toString().slice(-6)}`,
-        priority: 'emergency',
-        status: 'waiting',
+      const profile = patientProfile || JSON.parse(localStorage.getItem('patientProfile') || '{}');
+      const testToken = {
+        id: `test-token-${Date.now()}`,
+        tokenNumber: `TEST-${String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')}`,
+        patientName: profile.name,
+        age: profile.age,
+        phone: profile.phone,
+        email: profile.email,
+        doctorName: "Dr. Test Doctor",
+        department: "General Medicine",
+        roomNumber: "Room 101",
+        checkInTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         registrationTime: new Date().toISOString(),
-        estimatedConsultationTime: 'IMMEDIATE',
+        estimatedConsultationTime: new Date(Date.now() + 15 * 60000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        status: "waiting",
+        priority: "normal",
         positionInQueue: 1,
         patientsAhead: 0,
-        estimatedWaitTime: 5,
-        isEmergency: true,
-        notifications: [{
-          id: `notif-${Date.now()}`,
-          message: 'Emergency request received. Medical team will be notified immediately.',
-          type: 'urgent',
-          timestamp: new Date().toISOString(),
-          read: false
-        }]
-      });
+        estimatedWaitTime: 15,
+        isEmergency: false,
+        notifications: [
+          {
+            id: `notif-${Date.now()}`,
+            message: `Welcome! Your token has been created for testing.`,
+            type: "success",
+            timestamp: new Date().toISOString(),
+            read: false
+          }
+        ]
+      };
 
-      toast.success('Emergency request sent! Medical team notified immediately.');
-      setEmergencyMode(false);
-      setEmergencyReason('');
+      await mediSyncServices.smartOPD.addToken(testToken);
+      toast.success('Test token created successfully!');
     } catch (error) {
-      console.error('Error sending emergency request:', error);
-      toast.error('Failed to send emergency request');
+      console.error('Error creating test token:', error);
+      toast.error('Failed to create test token');
     }
   };
 
@@ -865,66 +1176,93 @@ const PatientOPDPortal = () => {
           </Card>
         </div>
 
-        {/* Emergency Services */}
-        <Card className="mb-6 border-red-200 bg-red-50">
+        {/* Hospital Map */}
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700">
-              <AlertTriangle className="w-5 h-5" />
-              Emergency Services
+            <CardTitle className="flex items-center gap-2">
+              <Map className="w-5 h-5 text-blue-600" />
+              Hospital Locations Map
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {!emergencyMode ? (
-              <div className="text-center">
-                <p className="text-red-700 mb-4">
-                  If you have a medical emergency, click below for immediate assistance
+            <HospitalMap />
+          </CardContent>
+        </Card>
+
+        {/* Nearby Hospitals with Directions */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-blue-600" />
+              Nearby Hospitals & Directions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recommendedHospitals.length > 0 ? (
+                recommendedHospitals.map((hospital, index) => (
+                  <div key={index} className="border rounded-lg p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{hospital.name || `Hospital ${index + 1}`}</h3>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {hospital.distance ? `${hospital.distance.toFixed(1)} km away` : 'Distance calculating...'}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleGetDirections(hospital)}
+                          className="flex items-center gap-1"
+                        >
+                          <Route className="w-3 h-3" />
+                          Directions
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="text-center p-2 bg-green-50 rounded">
+                        <div className="font-bold text-green-700">{hospital.bedsAvailable || 12}</div>
+                        <div className="text-green-600">Beds Available</div>
+                      </div>
+                      <div className="text-center p-2 bg-blue-50 rounded">
+                        <div className="font-bold text-blue-700">{hospital.queue || 15}</div>
+                        <div className="text-blue-600">Queue Time</div>
+                      </div>
+                      <div className="text-center p-2 bg-purple-50 rounded">
+                        <div className="font-bold text-purple-700">{hospital.rating || '4.5'}</div>
+                        <div className="text-purple-600">Rating</div>
+                      </div>
+                    </div>
+                    
+                    {hospital.address && (
+                      <div className="mt-3 text-sm text-muted-foreground">
+                        <strong>Address:</strong> {hospital.address}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Building2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Loading nearby hospitals...</p>
+                </div>
+              )}
+              
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-700 mb-2">
+                  <Navigation className="w-4 h-4" />
+                  <span className="font-semibold">Need Directions?</span>
+                </div>
+                <p className="text-sm text-blue-600">
+                  Click on any hospital's "Directions" button to get turn-by-turn navigation using Google Maps. 
+                  This will show you the fastest route from your current location to the hospital.
                 </p>
-                <Button 
-                  variant="destructive" 
-                  size="lg"
-                  onClick={() => setEmergencyMode(true)}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Request Emergency Assistance
-                </Button>
-                <div className="mt-4 text-sm text-red-600">
-                  <div>📞 Emergency: 108</div>
-                  <div>🚑 Available Ambulances: {ambulanceStats?.availableAmbulances || 0}</div>
-                </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Describe your emergency:</label>
-                  <textarea 
-                    className="w-full p-3 border rounded-md"
-                    rows={3}
-                    placeholder="Please describe your medical emergency..."
-                    value={emergencyReason}
-                    onChange={(e) => setEmergencyReason(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setEmergencyMode(false);
-                      setEmergencyReason('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    variant="destructive"
-                    onClick={handleEmergencyRequest}
-                    disabled={!emergencyReason}
-                  >
-                    Send Emergency Request
-                  </Button>
-                </div>
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -1090,7 +1428,7 @@ const PatientOPDPortal = () => {
                     <MapPin className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <div className="text-sm text-muted-foreground">Room</div>
-                      <div className="font-semibold">{activeToken.roomNumber || 'Consultation Room'}</div>
+                      <div className="font-semibold">{activeToken.roomNumber || 'TBA'}</div>
                     </div>
                   </div>
                   
@@ -1098,7 +1436,7 @@ const PatientOPDPortal = () => {
                     <Clock className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <div className="text-sm text-muted-foreground">Est. Time</div>
-                      <div className="font-semibold">{activeToken.estimatedConsultationTime}</div>
+                      <div className="font-semibold">{activeToken.estimatedConsultationTime || 'TBA'}</div>
                     </div>
                   </div>
                   

@@ -15,7 +15,35 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
-        display: ['Space Grotesk', 'sans-serif'],
+      },
+      fontSize: {
+        'h1': '32px',
+        'h2': '24px', 
+        'h3': '20px',
+        'body': ['14px', '16px'],
+        'ui': '14px',
+        'metric': ['16px', '18px']
+      },
+      fontWeight: {
+        'h1': '700',
+        'h2': '600',
+        'h3': '600',
+        'body': '400',
+        'ui': '500',
+        'metric': '600'
+      },
+      lineHeight: {
+        'h1': '1.2',
+        'h2': '1.3',
+        'h3': '1.4',
+        'body': '1.5',
+        'ui': '1.4',
+        'metric': '1.2'
+      },
+      letterSpacing: {
+        'h1': '-0.02em',
+        'h2': '-0.01em',
+        'tight': '-0.025em'
       },
       colors: {
         border: "hsl(var(--border))",

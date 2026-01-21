@@ -85,17 +85,17 @@ export const Login = () => {
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-600 to-green-500 flex items-center justify-center shadow-lg">
               <Activity className="w-6 h-6 text-white" />
             </div>
-            <span className="font-display font-bold text-2xl text-gray-900">MedSync</span>
+            <span className="font-sans text-[24px] font-[700] leading-[1.3] tracking-[-0.01em] text-gray-900">CuraNet</span>
           </div>
         </div>
 
         <Card className="shadow-xl border-0">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-gray-900">Welcome Back</CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardTitle className="font-sans text-[24px] font-[600] leading-[1.3] tracking-[-0.01em] text-gray-900">Welcome Back</CardTitle>
+            <CardDescription className="font-sans text-[14px] font-[400] leading-[1.5] text-gray-600">
               Sign in to your City Health Sync account
             </CardDescription>
           </CardHeader>
@@ -104,7 +104,7 @@ export const Login = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Role Selection */}
               <div className="space-y-2">
-                <Label htmlFor="role">Select Your Role</Label>
+                <Label htmlFor="role" className="font-sans text-[14px] font-[500] leading-[1.4] text-foreground">Select Your Role</Label>
                 <Select value={formData.role} onValueChange={(value: UserRole) => handleInputChange('role', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose your role" />
@@ -124,7 +124,7 @@ export const Login = () => {
 
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="font-sans text-[14px] font-[500] leading-[1.4] text-foreground">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
@@ -137,7 +137,7 @@ export const Login = () => {
 
               {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="font-sans text-[14px] font-[500] leading-[1.4] text-foreground">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"

@@ -58,13 +58,13 @@ export const CommandViewSection = () => {
 
             {/* Action Buttons with updated routing and styles */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/command-center">
+              <Link to="/login">
                 <Button className="bg-teal-600 hover:bg-teal-700 text-white border-teal-500">
                   <LayoutDashboard className="w-4 h-4 mr-2" />
                   Access CuraNet Command
                 </Button>
               </Link>
-              <Link to="/dashboard">
+              <Link to="/login">
                 <Button variant="outline" className="border-teal-400 text-teal-300 hover:bg-teal-800">
                   View Healthcare Dashboard
                 </Button>

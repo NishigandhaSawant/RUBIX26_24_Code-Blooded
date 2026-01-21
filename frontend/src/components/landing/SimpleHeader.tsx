@@ -40,7 +40,7 @@ export const SimpleHeader = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="border-teal-400 text-teal-100 hover:bg-teal-800" 
+                  className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-600" 
                   onClick={() => {
                     logout();
                     toast.success('Logged out successfully', {

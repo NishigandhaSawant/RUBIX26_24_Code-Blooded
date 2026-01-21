@@ -7,6 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Building2, Bed, Activity, AlertTriangle, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+ const MapContainerAny = MapContainer as any;
+ const TileLayerAny = TileLayer as any;
+ const MarkerAny = Marker as any;
+ const PopupAny = Popup as any;
+
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -100,14 +105,14 @@ export const CityOperationsMap = ({ hospitals, onHospitalSelect }: CityOperation
       </div>
 
       <div style={{ height: 'calc(100% - 60px)', width: '100%' }} className="rounded-lg overflow-hidden">
-        <MapContainer
+        <MapContainerAny
           center={defaultCenter}
           zoom={12}
           style={{ height: '100%', width: '100%' }}
           scrollWheelZoom={true}
           className="z-0"
         >
-          <TileLayer
+          <TileLayerAny
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
@@ -115,7 +120,7 @@ export const CityOperationsMap = ({ hospitals, onHospitalSelect }: CityOperation
           <MapUpdater hospitals={hospitals} />
           
           {hospitals.map((hospital) => (
-            <Marker
+            <MarkerAny
               key={hospital.id}
               position={[hospital.lat, hospital.lng]}
               icon={createHospitalIcon(hospital.intensity, hospital.status)}
@@ -137,7 +142,7 @@ export const CityOperationsMap = ({ hospitals, onHospitalSelect }: CityOperation
                 }
               }}
             >
-              <Popup>
+              <PopupAny>
                 <div className="p-2 min-w-[200px]">
                   <div className="flex items-center gap-2 mb-2">
                     <Building2 className="w-4 h-4 text-blue-600" />
@@ -190,10 +195,10 @@ export const CityOperationsMap = ({ hospitals, onHospitalSelect }: CityOperation
                     )}
                   </div>
                 </div>
-              </Popup>
-            </Marker>
+              </PopupAny>
+            </MarkerAny>
           ))}
-        </MapContainer>
+        </MapContainerAny>
       </div>
 
       {/* Legend */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { 
@@ -74,12 +74,21 @@ const HospitalNodeCard = ({
   
   return (
     <div 
+      role="button"
+      tabIndex={0}
+      aria-label={`Select ${data.hospital}`}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className={cn(
-        "flex-shrink-0 w-64 p-5 rounded-3xl cursor-pointer transition-all duration-300 border-2",
+        "flex-shrink-0 w-64 p-5 rounded-3xl cursor-pointer transition-all duration-300 border-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         isActive 
           ? "border-primary bg-card shadow-xl scale-105 z-10" 
-          : "border-border bg-muted/50 hover:bg-muted"
+          : "border-border bg-muted/50 hover:bg-muted hover:-translate-y-0.5 hover:shadow-md"
       )}
     >
       <div className="flex justify-between items-start mb-3">
@@ -112,6 +121,14 @@ const Dashboard = () => {
   const [currentTimeIdx, setCurrentTimeIdx] = useState(0);
   const [selectedHospital, setSelectedHospital] = useState("");
   const [completedActions, setCompletedActions] = useState(new Set());
+  const interventionsRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSelectHospital = useCallback((hospitalName: string) => {
+    setSelectedHospital(hospitalName);
+    requestAnimationFrame(() => {
+      interventionsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
 
   // Data Loading & Simulation Loop
   useEffect(() => {
@@ -166,6 +183,7 @@ const Dashboard = () => {
       <PageLayout 
         title="Hospital Core 4.0"
         description="Real-time micro interventions and hospital network management"
+        compact
       >
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
@@ -181,6 +199,7 @@ const Dashboard = () => {
     <PageLayout 
       title="Hospital Core 4.0"
       description="Real-time micro interventions and hospital network management"
+      compact
     >
       {/* Live Status Bar */}
       <div className="flex items-center gap-2 mb-6">
@@ -200,7 +219,7 @@ const Dashboard = () => {
               key={i} 
               data={h} 
               isActive={selectedHospital === h.hospital}
-              onClick={() => setSelectedHospital(h.hospital)}
+              onClick={() => handleSelectHospital(h.hospital)}
               alerts={getAlertsForHosp(h)}
             />
           ))}
@@ -259,7 +278,7 @@ const Dashboard = () => {
         </div>
 
         {/* RIGHT: INTERVENTIONS */}
-        <div className="lg:col-span-5 lg:sticky lg:top-8">
+        <div className="lg:col-span-5 lg:sticky lg:top-8" ref={interventionsRef}>
           <PageCard className="bg-primary text-white border-primary">
             <h3 className="text-xs font-black text-primary-foreground/60 uppercase tracking-[0.3em] mb-8 italic">Intervention Protocol</h3>
             <div className="space-y-4">

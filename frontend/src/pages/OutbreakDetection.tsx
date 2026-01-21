@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useDiseaseOutbreaks, type DiseaseOutbreak } from "@/hooks/useDiseaseOutbreaks";
+import { outbreakUtils } from "@/lib/firestore-services";
 import { 
   Bug, 
   AlertTriangle, 
@@ -10,10 +11,25 @@ import {
   Users,
   Filter,
   Search,
-  Shield
+  Shield,
+  X,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import DiseaseOutbreakMap from "@/components/DiseaseOutbreakMap";
+
+interface TransformedOutbreak extends DiseaseOutbreak {
+  reportedCases: number;
+  trend: string;
+  seasonality: string;
+  detectionDate: string;
+  predictedPeak: string;
+  riskFactors: string[];
+  recommendations: string[];
+  lastUpdated: string;
+}
 
 const safeDate = (value?: string | null) => {
   if (!value) return "N/A";
@@ -23,22 +39,39 @@ const safeDate = (value?: string | null) => {
 
 const OutbreakDetection = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDisease, setSelectedDisease] = useState("all");
   const [selectedSeverity, setSelectedSeverity] = useState("all");
-  const { outbreaks = [], loading } = useDiseaseOutbreaks();
+  const [selectedOutbreak, setSelectedOutbreak] = useState<TransformedOutbreak | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  
+  const filters = {
+    disease: selectedDisease !== 'all' ? selectedDisease : undefined,
+    severity: selectedSeverity !== 'all' ? selectedSeverity : undefined,
+    searchTerm: searchTerm || undefined
+  };
+  
+  const { outbreaks = [], loading, markResolved, refresh } = useDiseaseOutbreaks(
+    (filters.disease || filters.severity || filters.searchTerm) ? filters : undefined
+  );
 
   // Transform data to match UI expectations
-  const transformedOutbreaks = Array.isArray(outbreaks) ? outbreaks.map((outbreak, index) => ({
-    id: (outbreak?.disease || '') + (outbreak?.area || ''),
-    disease: outbreak?.disease || 'Unknown',
-    severity: outbreak?.calculated_severity || 'unknown',
-    affectedAreas: [outbreak?.area || 'Unknown'],
-    reportedCases: outbreak?.total_cases || 0,
-    trend: outbreak?.trend || 'unknown',
+  const transformedOutbreaks = Array.isArray(outbreaks) ? outbreaks.map((outbreak) => ({
+    id: outbreak.id || `${outbreak.disease}-${outbreak.zone}`,
+    disease: outbreak.disease,
+    severity: outbreak.severity,
+    affectedAreas: [outbreak.zone],
+    reportedCases: outbreak.active_cases,
+    trend: 'stable', // Default trend
     seasonality: "seasonal", // Default value
-    detectionDate: outbreak?.first_detection ? new Date(outbreak.first_detection).toISOString().split("T")[0] : "N/A",
-    predictedPeak: outbreak?.latest_detection ? new Date(outbreak.latest_detection).toISOString().split("T")[0] : "N/A",
+    detectionDate: outbreak.reported_at ? outbreakUtils.formatTimestamp(outbreak.reported_at) : "N/A",
+    predictedPeak: outbreak.last_updated ? outbreakUtils.formatTimestamp(outbreak.last_updated) : "N/A",
     riskFactors: ["Community transmission", "Local spread"], // Default values
-    recommendations: ["Monitor situation", "Prepare response"] // Default values
+    recommendations: ["Monitor situation", "Prepare response"], // Default values
+    lat: outbreak.lat,
+    lng: outbreak.lng,
+    zone: outbreak.zone,
+    lastUpdated: outbreak.last_updated ? outbreakUtils.getRelativeTime(outbreak.last_updated) : "Unknown"
   })) : [];
 
   const getSeverityColor = (severity: string) => {
